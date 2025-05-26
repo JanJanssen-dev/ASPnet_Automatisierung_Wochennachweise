@@ -27,16 +27,109 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 Umschulungsbeginn = new DateTime(2024, 1, 29)
             };
 
+            // Zeiträume aus Session laden, falls vorhanden
+            if (HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume") is List<Zeitraum> zeitraeume && zeitraeume.Any())
+            {
+                config.Zeitraeume = zeitraeume;
+            }
+
             return View(config);
+        }
+
+        [HttpPost]
+        public IActionResult AddZeitraum(UmschulungConfig model)
+        {
+            // Zeiträume aus Session laden oder neue Liste erstellen
+            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume") ?? new List<Zeitraum>();
+
+            // Validieren
+            if (model.NeuZeitraum.Ende < model.NeuZeitraum.Start)
+            {
+                ModelState.AddModelError("NeuZeitraum.Ende", "Das Enddatum muss nach dem Startdatum liegen.");
+                model.Zeitraeume = zeitraeume;
+                return View("Index", model);
+            }
+
+            // Neuen Zeitraum hinzufügen
+            zeitraeume.Add(new Zeitraum
+            {
+                Start = model.NeuZeitraum.Start,
+                Ende = model.NeuZeitraum.Ende,
+                Kategorie = model.NeuZeitraum.Kategorie,
+                Beschreibung = model.NeuZeitraum.Beschreibung
+            });
+
+            // In Session speichern
+            HttpContext.Session.Set("Zeitraeume", zeitraeume);
+
+            // Andere Daten in Session speichern
+            HttpContext.Session.SetString("Nachname", model.Nachname);
+            HttpContext.Session.SetString("Vorname", model.Vorname);
+            HttpContext.Session.SetString("Klasse", model.Klasse);
+            HttpContext.Session.Set("Umschulungsbeginn", model.Umschulungsbeginn);
+
+            // Zurück zur Index-Seite mit aktualisierten Daten
+            var config = new UmschulungConfig
+            {
+                Umschulungsbeginn = model.Umschulungsbeginn,
+                Nachname = model.Nachname,
+                Vorname = model.Vorname,
+                Klasse = model.Klasse,
+                Zeitraeume = zeitraeume,
+                NeuZeitraum = new Zeitraum
+                {
+                    Start = DateTime.Today,
+                    Ende = DateTime.Today.AddMonths(3)
+                }
+            };
+
+            TempData["StatusMessage"] = "Zeitraum wurde erfolgreich hinzugefügt.";
+            return View("Index", config);
+        }
+
+        [HttpPost]
+        public IActionResult DeleteZeitraum(int index)
+        {
+            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume");
+            if (zeitraeume != null && index >= 0 && index < zeitraeume.Count)
+            {
+                zeitraeume.RemoveAt(index);
+                HttpContext.Session.Set("Zeitraeume", zeitraeume);
+                TempData["StatusMessage"] = "Zeitraum wurde entfernt.";
+            }
+
+            // Andere Daten aus Session laden
+            var nachname = HttpContext.Session.GetString("Nachname") ?? string.Empty;
+            var vorname = HttpContext.Session.GetString("Vorname") ?? string.Empty;
+            var klasse = HttpContext.Session.GetString("Klasse") ?? string.Empty;
+            var beginn = HttpContext.Session.Get<DateTime?>("Umschulungsbeginn") ?? DateTime.Today;
+
+            var config = new UmschulungConfig
+            {
+                Umschulungsbeginn = beginn,
+                Nachname = nachname,
+                Vorname = vorname,
+                Klasse = klasse,
+                Zeitraeume = zeitraeume ?? new List<Zeitraum>()
+            };
+
+            return View("Index", config);
         }
 
         [HttpPost]
         public IActionResult Generate(UmschulungConfig config)
         {
-            if (!ModelState.IsValid)
+            // Zeiträume aus Session verwenden
+            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume");
+
+            if (zeitraeume == null || !zeitraeume.Any())
             {
+                ModelState.AddModelError(string.Empty, "Bitte fügen Sie mindestens einen Zeitraum hinzu.");
                 return View("Index", config);
             }
+
+            // Config mit Zeiträumen aus Session aktualisieren
+            config.Zeitraeume = zeitraeume;
 
             // Wochennachweise generieren
             var wochennachweise = _generator.GenerateWochennachweise(config);
