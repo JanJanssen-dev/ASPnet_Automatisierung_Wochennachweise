@@ -1,0 +1,52 @@
+﻿# Build- und Veröffentlichungsordner
+bin/
+obj/
+out/
+
+# Benutzer- und Arbeitsbereichsdateien von Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider/JetBrains
+.idea/
+*.sln.iml
+
+# ASP.NET spezifisch
+wwwroot/lib/
+wwwroot/node_modules/
+wwwroot/output/
+node_modules/
+
+# Paketverwaltung
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Logdateien
+*.log
+
+# Sonstige temporäre Dateien
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# MacOS und Windows spezifisch
+.DS_Store
+Thumbs.db
+
+# Lokale Einstellungen
+appsettings.Development.json
+appsettings.Local.json
+
+# Optional: Testresultate
+TestResults/
+*.TestResults/
+
+# Optional: Publish-Profile
+Properties/PublishProfiles/

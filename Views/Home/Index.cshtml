@@ -1,0 +1,40 @@
+﻿@model UmschulungConfig
+@{
+    ViewData["Title"] = "Wochennachweis-Generator";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Wochennachweis-Generator</h1>
+    <p>Automatische Erstellung von Tätigkeitsnachweisen für Umschüler</p>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Generierung starten</h5>
+                <form asp-action="Generate" method="post">
+                    <div class="mb-3">
+                        <label asp-for="Umschulungsbeginn" class="form-label">Startdatum der Umschulung</label>
+                        <input type="date" asp-for="Umschulungsbeginn" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Nachname" class="form-label">Nachname</label>
+                        <input type="text" asp-for="Nachname" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Vorname" class="form-label">Vorname</label>
+                        <input type="text" asp-for="Vorname" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Klasse" class="form-label">Klasse</label>
+                        <input type="text" asp-for="Klasse" class="form-control" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Wochennachweise generieren</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

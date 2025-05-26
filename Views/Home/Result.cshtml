@@ -1,0 +1,94 @@
+﻿@model List<Wochennachweis>
+@{
+    ViewData["Title"] = "Ergebnis";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Generierte Wochennachweise</h1>
+    <p>Für @ViewBag.Nachname wurden @Model.Count Wochennachweise erstellt.</p>
+
+    @if (Model.Any())
+    {
+        <a asp-action="DownloadAll" class="btn btn-success mb-3">
+            <i class="bi bi-file-earmark-zip"></i> Alle als ZIP herunterladen
+        </a>
+    }
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                Praktikum (@Model.Count(w => w.Kategorie == "Praktikum") Nachweise)
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Woche</th>
+                                <th>Zeitraum</th>
+                                <th>Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var woche in Model.Where(w => w.Kategorie == "Praktikum").OrderBy(w => w.Nummer))
+                            {
+                                <tr>
+                                    <td>@woche.Nummer</td>
+                                    <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        <a asp-action="Download" asp-route-id="@woche.Nummer" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                Umschulung (@Model.Count(w => w.Kategorie == "Umschulung") Nachweise)
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Woche</th>
+                                <th>Zeitraum</th>
+                                <th>Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var woche in Model.Where(w => w.Kategorie == "Umschulung").OrderBy(w => w.Nummer))
+                            {
+                                <tr>
+                                    <td>@woche.Nummer</td>
+                                    <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        <a asp-action="Download" asp-route-id="@woche.Nummer" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary">Zurück zur Startseite</a>
+</div>
