@@ -6,5 +6,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public DateTime Ende { get; set; }
         public string Beschreibung { get; set; } = string.Empty;
         public string Kategorie { get; set; } = "Umschulung";
+
+        // Falls alter Code diese Properties verwendet:
+        public DateTime Datum => Start;  // Alias für Start
+        public string Name => Beschreibung; // Alias für Beschreibung
     }
 }

@@ -38,7 +38,7 @@ class ClientWochennachweisGenerator {
         this.isGenerating = true;
 
         try {
-            // 1. Konfigurationsdaten aus dem Formular sammeln
+            // 1. Konfigurationsdaten sammeln
             this.showProgress('📋 Sammle Konfigurationsdaten...');
             const configData = this.getConfigFromForm();
 
@@ -128,16 +128,18 @@ class ClientWochennachweisGenerator {
     }
 
     getZeitraeume() {
-        // Zeiträume aus der Session/UI holen
-        // Da die Zeiträume in der Session gespeichert sind, müssen wir sie aus der HTML-Tabelle parsen
         const zeitraeume = [];
         const tableRows = document.querySelectorAll('table tbody tr');
 
         tableRows.forEach(row => {
             const cells = row.querySelectorAll('td');
             if (cells.length >= 4) {
+                // Badge-Text extrahieren
+                const kategorieBadge = cells[0].querySelector('.badge');
+                const kategorie = kategorieBadge ? kategorieBadge.textContent.trim() : cells[0].textContent.trim();
+
                 zeitraeume.push({
-                    kategorie: cells[0].textContent.trim(),
+                    kategorie: kategorie,
                     start: this.parseGermanDate(cells[1].textContent.trim()),
                     ende: this.parseGermanDate(cells[2].textContent.trim()),
                     beschreibung: cells[3].textContent.trim()
@@ -230,31 +232,6 @@ class ClientWochennachweisGenerator {
         }
     }
 
-    async downloadSingleDocument(wochenData) {
-        try {
-            if (!this.template) {
-                this.showProgress('📄 Lade Template...');
-                const templateResponse = await fetch('/api/wochennachweis/template');
-                this.template = await templateResponse.arrayBuffer();
-            }
-
-            this.showProgress(`📝 Erstelle Dokument für Woche ${wochenData.nummer}...`);
-            const document = await this.createDocument(wochenData);
-
-            const blob = new Blob([document], {
-                type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            });
-
-            const filename = `Wochennachweis_Woche_${String(wochenData.nummer).padStart(2, '0')}_${wochenData.kategorie}.docx`;
-            this.downloadBlob(blob, filename);
-
-            this.hideProgress();
-        } catch (error) {
-            console.error('❌ Fehler beim Einzeldownload:', error);
-            this.showError('Fehler beim Download: ' + error.message);
-        }
-    }
-
     downloadBlob(blob, filename) {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -275,7 +252,9 @@ class ClientWochennachweisGenerator {
             container.innerHTML = '<h5>📁 Einzelne Dokumente herunterladen:</h5>';
 
             const mainContainer = document.querySelector('.container');
-            mainContainer.appendChild(container);
+            if (mainContainer) {
+                mainContainer.appendChild(container);
+            }
         }
 
         // Buttons für jedes Dokument erstellen
@@ -305,7 +284,10 @@ class ClientWochennachweisGenerator {
             progressDiv.id = 'generation-progress';
             progressDiv.className = 'alert alert-info sticky-top';
             progressDiv.style.zIndex = '1050';
-            document.querySelector('.container').prepend(progressDiv);
+            const container = document.querySelector('.container');
+            if (container) {
+                container.prepend(progressDiv);
+            }
         }
 
         progressDiv.innerHTML = `
@@ -337,7 +319,10 @@ class ClientWochennachweisGenerator {
         if (!progressDiv) {
             progressDiv = document.createElement('div');
             progressDiv.id = 'generation-progress';
-            document.querySelector('.container').prepend(progressDiv);
+            const container = document.querySelector('.container');
+            if (container) {
+                container.prepend(progressDiv);
+            }
         }
 
         progressDiv.className = 'alert alert-danger sticky-top';

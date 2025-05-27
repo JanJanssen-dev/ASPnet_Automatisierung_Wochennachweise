@@ -6,12 +6,8 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public string Nachname { get; set; } = string.Empty;
         public string Vorname { get; set; } = string.Empty;
         public string Klasse { get; set; } = string.Empty;
-        public List<Zeitraum> Zeitraeume { get; set; } = new List<Zeitraum>();
-        public Zeitraum NeuZeitraum { get; set; } = new Zeitraum
-        {
-            Start = DateTime.Today,
-            Ende = DateTime.Today.AddMonths(3)
-        };
+        public List<Zeitraum> Zeitraeume { get; set; } = new();
+        public Zeitraum? NeuZeitraum { get; set; } = new Zeitraum();
     }
 }
 

@@ -6,9 +6,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
     public class FeiertagService
     {
         private readonly ConcurrentDictionary<int, List<DateTime>> _cache = new();
-        private readonly ILogger<FeiertagService> _logger;
+        private readonly ILogger<FeiertagService>? _logger;
 
-        public FeiertagService(ILogger<FeiertagService> logger)
+        public FeiertagService(ILogger<FeiertagService>? logger = null)
         {
             _logger = logger;
         }
@@ -22,51 +22,73 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             try
             {
-                _logger.LogInformation("Generiere Feiertage für Jahr {Jahr}", jahr);
+                _logger?.LogInformation("Generiere Feiertage für Jahr {Jahr}", jahr);
 
                 var feiertage = new List<DateTime>();
 
-                // Deutsche Feiertage mit Nager.Date
-                var publicHolidays = DateSystem.GetPublicHolidays(jahr, CountryCode.DE);
-
-                foreach (var holiday in publicHolidays)
+                // Deutsche Feiertage mit Nager.Date - Version 2.x API
+                try
                 {
-                    feiertage.Add(holiday.Date);
+                    var publicHolidays = DateSystem.GetPublicHoliday(CountryCode.DE, jahr);
+
+                    foreach (var holiday in publicHolidays)
+                    {
+                        feiertage.Add(holiday.Date);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Nager.Date API Fehler, verwende Fallback für Jahr {Jahr}", jahr);
+                    // Falls die API nicht funktioniert, verwenden wir den Fallback
                 }
 
-                // Zusätzliche regionale Feiertage (anpassbar je nach Bundesland)
+                // Zusätzliche regionale Feiertage
                 AddRegionalHolidays(feiertage, jahr);
 
-                // Sortieren und Duplikate entfernen
-                feiertage = feiertage.Distinct().OrderBy(d => d).ToList();
+                // Falls keine Feiertage geladen wurden, verwende Fallback
+                if (feiertage.Count == 0)
+                {
+                    feiertage = GetFallbackFeiertage(jahr);
+                }
+                else
+                {
+                    // Sortieren und Duplikate entfernen
+                    feiertage = feiertage.Distinct().OrderBy(d => d).ToList();
+                }
 
-                _logger.LogInformation("Feiertage für {Jahr} generiert: {Anzahl} Feiertage", jahr, feiertage.Count);
+                _logger?.LogInformation("Feiertage für {Jahr} generiert: {Anzahl} Feiertage", jahr, feiertage.Count);
                 return feiertage;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fehler beim Generieren der Feiertage für Jahr {Jahr}", jahr);
+                _logger?.LogError(ex, "Fehler beim Generieren der Feiertage für Jahr {Jahr}", jahr);
                 return GetFallbackFeiertage(jahr);
             }
         }
 
         private void AddRegionalHolidays(List<DateTime> feiertage, int jahr)
         {
-            // Hier können regionale Feiertage hinzugefügt werden
-            // Beispiel für NRW (anpassbar je nach Standort):
+            try
+            {
+                // Ostersonntag berechnen
+                var easter = GetEasterSunday(jahr);
 
-            // Rosenmontag (48 Tage vor Ostersonntag)
-            var easter = GetEasterSunday(jahr);
-            var rosenmontag = easter.AddDays(-48);
-            feiertage.Add(rosenmontag);
+                // Rosenmontag (48 Tage vor Ostersonntag)
+                var rosenmontag = easter.AddDays(-48);
+                feiertage.Add(rosenmontag);
 
-            // Karnevalsdienstag (47 Tage vor Ostersonntag)
-            var karnevalsdienstag = easter.AddDays(-47);
-            feiertage.Add(karnevalsdienstag);
+                // Karnevalsdienstag (47 Tage vor Ostersonntag)
+                var karnevalsdienstag = easter.AddDays(-47);
+                feiertage.Add(karnevalsdienstag);
 
-            // Heiligabend und Silvester (oft arbeitsfrei)
-            feiertage.Add(new DateTime(jahr, 12, 24)); // Heiligabend
-            feiertage.Add(new DateTime(jahr, 12, 31)); // Silvester
+                // Heiligabend und Silvester (oft arbeitsfrei)
+                feiertage.Add(new DateTime(jahr, 12, 24)); // Heiligabend
+                feiertage.Add(new DateTime(jahr, 12, 31)); // Silvester
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Fehler bei regionalen Feiertagen für Jahr {Jahr}", jahr);
+            }
         }
 
         private DateTime GetEasterSunday(int jahr)
@@ -115,7 +137,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fehler bei Fallback-Osterberechnung für Jahr {Jahr}", jahr);
+                _logger?.LogError(ex, "Fehler bei Fallback-Osterberechnung für Jahr {Jahr}", jahr);
             }
 
             return feiertage.Distinct().OrderBy(d => d).ToList();
@@ -141,26 +163,23 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             try
             {
-                var publicHolidays = DateSystem.GetPublicHolidays(datum.Year, CountryCode.DE);
-                var holiday = publicHolidays.FirstOrDefault(h => h.Date.Date == datum.Date);
-
-                if (holiday != null)
-                {
-                    return holiday.LocalName ?? holiday.Name;
-                }
-
                 // Spezielle Feiertage prüfen
                 var easter = GetEasterSunday(datum.Year);
                 if (datum.Date == easter.AddDays(-48).Date) return "Rosenmontag";
                 if (datum.Date == easter.AddDays(-47).Date) return "Karnevalsdienstag";
                 if (datum.Date == new DateTime(datum.Year, 12, 24).Date) return "Heiligabend";
                 if (datum.Date == new DateTime(datum.Year, 12, 31).Date) return "Silvester";
+                if (datum.Date == new DateTime(datum.Year, 1, 1).Date) return "Neujahr";
+                if (datum.Date == new DateTime(datum.Year, 5, 1).Date) return "Tag der Arbeit";
+                if (datum.Date == new DateTime(datum.Year, 10, 3).Date) return "Tag der Deutschen Einheit";
+                if (datum.Date == new DateTime(datum.Year, 12, 25).Date) return "1. Weihnachtsfeiertag";
+                if (datum.Date == new DateTime(datum.Year, 12, 26).Date) return "2. Weihnachtsfeiertag";
 
                 return string.Empty;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fehler beim Ermitteln des Feiertagsnamens für {Datum}", datum);
+                _logger?.LogError(ex, "Fehler beim Ermitteln des Feiertagsnamens für {Datum}", datum);
                 return string.Empty;
             }
         }
@@ -168,20 +187,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         public void ClearCache()
         {
             _cache.Clear();
-            _logger.LogInformation("Feiertage-Cache geleert");
-        }
-
-        public int GetCacheSize()
-        {
-            return _cache.Count;
-        }
-
-        public Dictionary<int, int> GetCacheStatistics()
-        {
-            return _cache.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value.Count
-            );
+            _logger?.LogInformation("Feiertage-Cache geleert");
         }
     }
 }

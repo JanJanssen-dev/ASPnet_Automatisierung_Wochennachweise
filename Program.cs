@@ -1,4 +1,6 @@
-﻿using ASPnet_Automatisierung_Wochennachweise.Services;
+﻿#nullable disable
+
+using ASPnet_Automatisierung_Wochennachweise.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
