@@ -1,6 +1,6 @@
 namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
-    public class Wochennachweis
+    public class WochennachweisModel
     {
         public int Nummer { get; set; }
         public DateTime Montag { get; set; }

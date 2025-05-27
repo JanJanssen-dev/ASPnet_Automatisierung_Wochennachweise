@@ -11,9 +11,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             _feiertagService = feiertagService;
         }
 
-        public List<Wochennachweis> GenerateWochennachweise(UmschulungConfig config)
+        public List<WochennachweisModel> GenerateWochennachweise(UmschulungConfig config)
         {
-            var result = new List<Wochennachweis>();
+            var result = new List<WochennachweisModel>();
 
             // Finde das Ende der Umschulung (letzter Tag im letzten Zeitraum)
             var umschulungsEnde = config.Zeitraeume.Max(z => z.Ende);
@@ -44,7 +44,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
 
                 if (zeitraum != null)
                 {
-                    var wochennachweis = new Wochennachweis
+                    var wochennachweis = new WochennachweisModel
                     {
                         Nummer = wochenNummer,
                         Montag = aktuellerMontag,
@@ -95,7 +95,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             return result;
         }
 
-        private Zeitraum? GetZeitraumForDatum(List<Zeitraum> zeitraeume, DateTime datum)
+        private ZeitraumModel? GetZeitraumForDatum(List<ZeitraumModel> zeitraeume, DateTime datum)
         {
             return zeitraeume.FirstOrDefault(z => datum.Date >= z.Start.Date && datum.Date <= z.Ende.Date);
         }

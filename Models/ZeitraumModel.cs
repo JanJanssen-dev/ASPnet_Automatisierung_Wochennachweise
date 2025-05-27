@@ -1,6 +1,6 @@
 namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
-    public class Zeitraum
+    public class ZeitraumModel
     {
         public DateTime Start { get; set; }
         public DateTime Ende { get; set; }
