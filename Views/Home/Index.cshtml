@@ -4,114 +4,172 @@
 }
 
 <div class="container">
-    <h1 class="my-4 text-center">Wochennachweis-Generator</h1>
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="my-4 text-center">
+                <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                Wochennachweis-Generator
+            </h1>
+            <p class="text-center text-muted mb-4">
+                Automatische Erstellung von Wochennachweisen für Umschulung und Praktikum
+                <br><small><i class="bi bi-cpu me-1"></i>Client-seitige Generierung - Keine Server-Last</small>
+            </p>
 
-    @if (TempData["StatusMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["StatusMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Grunddaten</h5>
-        </div>
-        <div class="card-body">
-            <form asp-action="Generate" method="post">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label asp-for="Umschulungsbeginn" class="form-label">Beginn der Umschulung/des Praktikums</label>
-                            <input asp-for="Umschulungsbeginn" class="form-control" type="date" required />
-                            <span asp-validation-for="Umschulungsbeginn" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label asp-for="Klasse" class="form-label">Klasse/Kurs</label>
-                            <input asp-for="Klasse" class="form-control" required />
-                            <span asp-validation-for="Klasse" class="text-danger"></span>
-                        </div>
-                    </div>
+            @if (TempData["StatusMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i>@TempData["StatusMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label asp-for="Nachname" class="form-label">Nachname</label>
-                            <input asp-for="Nachname" class="form-control" required />
-                            <span asp-validation-for="Nachname" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label asp-for="Vorname" class="form-label">Vorname</label>
-                            <input asp-for="Vorname" class="form-control" required />
-                            <span asp-validation-for="Vorname" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
+            }
 
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Definierte Zeiträume</h5>
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#zeitraumModal">
-                            <i class="bi bi-plus-circle"></i> Neuen Zeitraum hinzufügen
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        @if (!Model.Zeitraeume.Any())
-                        {
-                            <div class="alert alert-info">
-                                Es wurden noch keine Zeiträume definiert. Bitte fügen Sie mindestens einen Zeitraum hinzu.
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle me-2"></i>Grunddaten
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Generate" method="post" id="wochennachweis-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Umschulungsbeginn" class="form-label">
+                                        <i class="bi bi-calendar-event me-1"></i>Beginn der Umschulung/des Praktikums
+                                    </label>
+                                    <input asp-for="Umschulungsbeginn" class="form-control" type="date" required id="Umschulungsbeginn" />
+                                    <span asp-validation-for="Umschulungsbeginn" class="text-danger"></span>
+                                </div>
                             </div>
-                        }
-                        else
-                        {
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Kategorie</th>
-                                            <th>Von</th>
-                                            <th>Bis</th>
-                                            <th>Beschreibung</th>
-                                            <th>Aktion</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @for (int i = 0; i < Model.Zeitraeume.Count; i++)
-                                        {
-                                            <tr>
-                                                <td>@Model.Zeitraeume[i].Kategorie</td>
-                                                <td>@Model.Zeitraeume[i].Start.ToString("dd.MM.yyyy")</td>
-                                                <td>@Model.Zeitraeume[i].Ende.ToString("dd.MM.yyyy")</td>
-                                                <td>@Model.Zeitraeume[i].Beschreibung</td>
-                                                <td>
-                                                    <form asp-action="DeleteZeitraum" method="post">
-                                                        <input type="hidden" name="index" value="@i" />
-                                                        <button type="submit" class="btn btn-danger btn-sm">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </form>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Klasse" class="form-label">
+                                        <i class="bi bi-mortarboard me-1"></i>Klasse/Kurs
+                                    </label>
+                                    <input asp-for="Klasse" class="form-control" required id="Klasse"
+                                           placeholder="z.B. FIAE-2023-A" />
+                                    <span asp-validation-for="Klasse" class="text-danger"></span>
+                                </div>
                             </div>
-                        }
-                    </div>
-                </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Nachname" class="form-label">
+                                        <i class="bi bi-person me-1"></i>Nachname
+                                    </label>
+                                    <input asp-for="Nachname" class="form-control" required id="Nachname" />
+                                    <span asp-validation-for="Nachname" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Vorname" class="form-label">
+                                        <i class="bi bi-person me-1"></i>Vorname
+                                    </label>
+                                    <input asp-for="Vorname" class="form-control" required id="Vorname" />
+                                    <span asp-validation-for="Vorname" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
 
-                <div class="text-center mb-5">
-                    <button type="submit" class="btn btn-success btn-lg"
-                            disabled="@(!Model.Zeitraeume.Any())">
-                        <i class="bi bi-file-earmark-word"></i> Wochennachweise generieren
-                    </button>
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-calendar3 me-2"></i>Definierte Zeiträume
+                                </h5>
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#zeitraumModal">
+                                    <i class="bi bi-plus-circle me-1"></i>Neuen Zeitraum hinzufügen
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                @if (!Model.Zeitraeume.Any())
+                                {
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Es wurden noch keine Zeiträume definiert. Bitte fügen Sie mindestens einen Zeitraum hinzu.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover" id="zeitraeume-table">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th><i class="bi bi-tag me-1"></i>Kategorie</th>
+                                                    <th><i class="bi bi-calendar me-1"></i>Von</th>
+                                                    <th><i class="bi bi-calendar me-1"></i>Bis</th>
+                                                    <th><i class="bi bi-card-text me-1"></i>Beschreibung</th>
+                                                    <th><i class="bi bi-gear me-1"></i>Aktion</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int i = 0; i < Model.Zeitraeume.Count; i++)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <span class="badge bg-@(Model.Zeitraeume[i].Kategorie == "Praktikum" ? "success" : "primary")">
+                                                                @Model.Zeitraeume[i].Kategorie
+                                                            </span>
+                                                        </td>
+                                                        <td>@Model.Zeitraeume[i].Start.ToString("dd.MM.yyyy")</td>
+                                                        <td>@Model.Zeitraeume[i].Ende.ToString("dd.MM.yyyy")</td>
+                                                        <td>@Model.Zeitraeume[i].Beschreibung</td>
+                                                        <td>
+                                                            <form asp-action="DeleteZeitraum" method="post" class="d-inline">
+                                                                <input type="hidden" name="index" value="@i" />
+                                                                <button type="submit" class="btn btn-danger btn-sm"
+                                                                        onclick="return confirm('Zeitraum wirklich löschen?')">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Zeitraum-Statistiken -->
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Praktikum: @Model.Zeitraeume.Count(z => z.Kategorie == "Praktikum") Zeiträume
+                                            </small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Umschulung: @Model.Zeitraeume.Count(z => z.Kategorie == "Umschulung") Zeiträume
+                                            </small>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="text-center mb-4">
+                            <button type="submit" class="btn btn-success btn-lg px-5"
+                                    disabled="@(!Model.Zeitraeume.Any())" id="generate-button">
+                                <i class="bi bi-file-earmark-word me-2"></i>
+                                Wochennachweise generieren
+                                <br><small class="fw-normal">Client-seitige Erstellung</small>
+                            </button>
+
+                            @if (!Model.Zeitraeume.Any())
+                            {
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        Bitte fügen Sie mindestens einen Zeitraum hinzu
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -121,44 +179,65 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="AddZeitraum" method="post">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="zeitraumModalLabel">Neuen Zeitraum hinzufügen</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="zeitraumModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Neuen Zeitraum hinzufügen
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Formularfelder für ggf. bestehende Daten -->
+                    <!-- Hidden fields für bestehende Daten -->
                     <input type="hidden" asp-for="Umschulungsbeginn" />
                     <input type="hidden" asp-for="Nachname" />
                     <input type="hidden" asp-for="Vorname" />
                     <input type="hidden" asp-for="Klasse" />
 
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Kategorie" class="form-label">Kategorie</label>
+                        <label asp-for="NeuZeitraum.Kategorie" class="form-label">
+                            <i class="bi bi-tag me-1"></i>Kategorie
+                        </label>
                         <select asp-for="NeuZeitraum.Kategorie" class="form-select">
-                            <option value="Umschulung">Umschulung</option>
-                            <option value="Praktikum">Praktikum</option>
+                            <option value="Umschulung">
+                                <i class="bi bi-mortarboard"></i> Umschulung
+                            </option>
+                            <option value="Praktikum">
+                                <i class="bi bi-building"></i> Praktikum
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Start" class="form-label">Startdatum</label>
+                        <label asp-for="NeuZeitraum.Start" class="form-label">
+                            <i class="bi bi-calendar-event me-1"></i>Startdatum
+                        </label>
                         <input asp-for="NeuZeitraum.Start" type="date" class="form-control" required />
                         <span asp-validation-for="NeuZeitraum.Start" class="text-danger"></span>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Ende" class="form-label">Enddatum</label>
+                        <label asp-for="NeuZeitraum.Ende" class="form-label">
+                            <i class="bi bi-calendar-x me-1"></i>Enddatum
+                        </label>
                         <input asp-for="NeuZeitraum.Ende" type="date" class="form-control" required />
                         <span asp-validation-for="NeuZeitraum.Ende" class="text-danger"></span>
                     </div>
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Beschreibung" class="form-label">Beschreibung</label>
+                        <label asp-for="NeuZeitraum.Beschreibung" class="form-label">
+                            <i class="bi bi-card-text me-1"></i>Beschreibung
+                        </label>
                         <input asp-for="NeuZeitraum.Beschreibung" class="form-control" required
                                placeholder="z.B. Modul HTML/CSS, Praktikum bei Firma XYZ" />
                         <span asp-validation-for="NeuZeitraum.Beschreibung" class="text-danger"></span>
+                        <div class="form-text">
+                            Diese Beschreibung wird in allen Wochennachweisen dieses Zeitraums verwendet.
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Hinzufügen</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Hinzufügen
+                    </button>
                 </div>
             </form>
         </div>
@@ -180,10 +259,30 @@
                 if (endDate < startDate) {
                     e.preventDefault();
                     alert('Das Enddatum muss nach dem Startdatum liegen.');
+                    return false;
                 }
             });
+
+            // Generate-Button State Management
+            const generateButton = document.getElementById('generate-button');
+            const zeitraeumTable = document.getElementById('zeitraeume-table');
+
+            function updateGenerateButton() {
+                const hasZeitraeume = zeitraeumTable && zeitraeumTable.querySelector('tbody tr');
+                if (generateButton) {
+                    generateButton.disabled = !hasZeitraeume;
+                }
+            }
+
+            // Initial check
+            updateGenerateButton();
+
+            // Debug: Zeige verfügbare Daten
+            console.log('🔍 Index.cshtml geladen');
+            console.log('📊 Verfügbare Zeiträume:', @Model.Zeitraeume.Count);
         });
     </script>
+
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }

@@ -1,72 +1,80 @@
-using ASPnet_Automatisierung_Wochennachweise.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Nager.Date;
+using System.Collections.Concurrent;
 
 namespace ASPnet_Automatisierung_Wochennachweise.Services
 {
     public class FeiertagService
     {
-        public Dictionary<DateTime, string> GetFeiertage(DateTime start, DateTime ende)
+        private readonly ConcurrentDictionary<int, List<DateTime>> _cache = new();
+        private readonly ILogger<FeiertagService> _logger;
+
+        public FeiertagService(ILogger<FeiertagService> logger)
         {
-            var result = new Dictionary<DateTime, string>();
+            _logger = logger;
+        }
 
-            // Für jedes Jahr im Zeitraum die Feiertage ermitteln
-            for (int jahr = start.Year; jahr <= ende.Year; jahr++)
+        public List<DateTime> GetFeiertage(int jahr)
+        {
+            return _cache.GetOrAdd(jahr, GenerateFeiertage);
+        }
+
+        private List<DateTime> GenerateFeiertage(int jahr)
+        {
+            try
             {
-                var jahresFeiertage = GetGermanHolidays(jahr);
+                _logger.LogInformation("Generiere Feiertage für Jahr {Jahr}", jahr);
 
-                // Nur Feiertage im angeforderten Zeitraum zurückgeben
-                foreach (var feiertag in jahresFeiertage)
+                var feiertage = new List<DateTime>();
+
+                // Deutsche Feiertage mit Nager.Date
+                var publicHolidays = DateSystem.GetPublicHolidays(jahr, CountryCode.DE);
+
+                foreach (var holiday in publicHolidays)
                 {
-                    if (feiertag.Datum >= start && feiertag.Datum <= ende)
-                    {
-                        result[feiertag.Datum] = $"FT ({feiertag.Name})";
-                    }
+                    feiertage.Add(holiday.Date);
                 }
+
+                // Zusätzliche regionale Feiertage (anpassbar je nach Bundesland)
+                AddRegionalHolidays(feiertage, jahr);
+
+                // Sortieren und Duplikate entfernen
+                feiertage = feiertage.Distinct().OrderBy(d => d).ToList();
+
+                _logger.LogInformation("Feiertage für {Jahr} generiert: {Anzahl} Feiertage", jahr, feiertage.Count);
+                return feiertage;
             }
-
-            return result;
-        }
-
-        private List<(DateTime Datum, string Name)> GetGermanHolidays(int year)
-        {
-            var ostern = BerechneOstern(year);
-
-            var feiertage = new List<(DateTime Datum, string Name)>
+            catch (Exception ex)
             {
-                // Feste Feiertage
-                (new DateTime(year, 1, 1), "Neujahr"),
-                (new DateTime(year, 5, 1), "Tag der Arbeit"),
-                (new DateTime(year, 10, 3), "Tag der Deutschen Einheit"),
-                (new DateTime(year, 10, 31), "Reformationstag"), // In Sachsen
-                (BerechneBussUndBettag(year), "Buß- und Bettag"), // In Sachsen
-                (new DateTime(year, 12, 25), "1. Weihnachtsfeiertag"),
-                (new DateTime(year, 12, 26), "2. Weihnachtsfeiertag"),
-
-                // Bewegliche Feiertage (abhängig vom Osterdatum)
-                (ostern.AddDays(-2), "Karfreitag"),
-                (ostern, "Ostersonntag"),
-                (ostern.AddDays(1), "Ostermontag"),
-                (ostern.AddDays(39), "Christi Himmelfahrt"),
-                (ostern.AddDays(49), "Pfingstsonntag"),
-                (ostern.AddDays(50), "Pfingstmontag"),
-                (ostern.AddDays(60), "Fronleichnam") // Nicht in Sachsen, aber mit aufgenommen für Vollständigkeit
-            };
-
-            // Nur in Sachsen gültige Feiertage zurückgeben
-            return feiertage.Where(f =>
-                f.Name != "Fronleichnam" && // Nicht in Sachsen
-                !(f.Name == "Ostersonntag" || f.Name == "Pfingstsonntag") // Sonntage sind keine gesetzlichen Feiertage
-            ).ToList();
+                _logger.LogError(ex, "Fehler beim Generieren der Feiertage für Jahr {Jahr}", jahr);
+                return GetFallbackFeiertage(jahr);
+            }
         }
 
-        // Berechnung des Osterdatums nach dem Gaußschen Algorithmus
-        private DateTime BerechneOstern(int year)
+        private void AddRegionalHolidays(List<DateTime> feiertage, int jahr)
         {
-            int a = year % 19;
-            int b = year / 100;
-            int c = year % 100;
+            // Hier können regionale Feiertage hinzugefügt werden
+            // Beispiel für NRW (anpassbar je nach Standort):
+
+            // Rosenmontag (48 Tage vor Ostersonntag)
+            var easter = GetEasterSunday(jahr);
+            var rosenmontag = easter.AddDays(-48);
+            feiertage.Add(rosenmontag);
+
+            // Karnevalsdienstag (47 Tage vor Ostersonntag)
+            var karnevalsdienstag = easter.AddDays(-47);
+            feiertage.Add(karnevalsdienstag);
+
+            // Heiligabend und Silvester (oft arbeitsfrei)
+            feiertage.Add(new DateTime(jahr, 12, 24)); // Heiligabend
+            feiertage.Add(new DateTime(jahr, 12, 31)); // Silvester
+        }
+
+        private DateTime GetEasterSunday(int jahr)
+        {
+            // Gauss'sche Osterformel
+            int a = jahr % 19;
+            int b = jahr / 100;
+            int c = jahr % 100;
             int d = b / 4;
             int e = b % 4;
             int f = (b + 8) / 25;
@@ -79,25 +87,101 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             int month = (h + l - 7 * m + 114) / 31;
             int day = ((h + l - 7 * m + 114) % 31) + 1;
 
-            return new DateTime(year, month, day);
+            return new DateTime(jahr, month, day);
         }
 
-        // Berechnung des Buß- und Bettags (Mittwoch vor dem letzten Sonntag im Kirchenjahr)
-        private DateTime BerechneBussUndBettag(int year)
+        private List<DateTime> GetFallbackFeiertage(int jahr)
         {
-            // 1. Advent ist am Sonntag zwischen 27.11 und 3.12
-            // Der letzte Sonntag im Kirchenjahr ist eine Woche davor
-            DateTime ersterAdvent = new DateTime(year, 11, 27);
-            while (ersterAdvent.DayOfWeek != DayOfWeek.Sunday)
+            // Fallback mit den wichtigsten deutschen Feiertagen
+            var feiertage = new List<DateTime>
             {
-                ersterAdvent = ersterAdvent.AddDays(1);
+                new DateTime(jahr, 1, 1),   // Neujahr
+                new DateTime(jahr, 5, 1),   // Tag der Arbeit
+                new DateTime(jahr, 10, 3),  // Tag der Deutschen Einheit
+                new DateTime(jahr, 12, 25), // 1. Weihnachtsfeiertag
+                new DateTime(jahr, 12, 26)  // 2. Weihnachtsfeiertag
+            };
+
+            try
+            {
+                // Osterfeiertage berechnen
+                var easter = GetEasterSunday(jahr);
+                feiertage.Add(easter.AddDays(-2)); // Karfreitag
+                feiertage.Add(easter);              // Ostersonntag
+                feiertage.Add(easter.AddDays(1));   // Ostermontag
+                feiertage.Add(easter.AddDays(39));  // Christi Himmelfahrt
+                feiertage.Add(easter.AddDays(49));  // Pfingstsonntag
+                feiertage.Add(easter.AddDays(50));  // Pfingstmontag
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler bei Fallback-Osterberechnung für Jahr {Jahr}", jahr);
             }
 
-            // Letzter Sonntag im Kirchenjahr ist eine Woche vor dem 1. Advent
-            DateTime letzterSonntag = ersterAdvent.AddDays(-7);
+            return feiertage.Distinct().OrderBy(d => d).ToList();
+        }
 
-            // Buß- und Bettag ist der Mittwoch davor
-            return letzterSonntag.AddDays(-4);
+        public bool IsFeiertag(DateTime datum)
+        {
+            var feiertage = GetFeiertage(datum.Year);
+            return feiertage.Contains(datum.Date);
+        }
+
+        public bool IsWeekend(DateTime datum)
+        {
+            return datum.DayOfWeek == DayOfWeek.Saturday || datum.DayOfWeek == DayOfWeek.Sunday;
+        }
+
+        public bool IsArbeitsfreiTag(DateTime datum)
+        {
+            return IsWeekend(datum) || IsFeiertag(datum);
+        }
+
+        public string GetFeiertagName(DateTime datum)
+        {
+            try
+            {
+                var publicHolidays = DateSystem.GetPublicHolidays(datum.Year, CountryCode.DE);
+                var holiday = publicHolidays.FirstOrDefault(h => h.Date.Date == datum.Date);
+
+                if (holiday != null)
+                {
+                    return holiday.LocalName ?? holiday.Name;
+                }
+
+                // Spezielle Feiertage prüfen
+                var easter = GetEasterSunday(datum.Year);
+                if (datum.Date == easter.AddDays(-48).Date) return "Rosenmontag";
+                if (datum.Date == easter.AddDays(-47).Date) return "Karnevalsdienstag";
+                if (datum.Date == new DateTime(datum.Year, 12, 24).Date) return "Heiligabend";
+                if (datum.Date == new DateTime(datum.Year, 12, 31).Date) return "Silvester";
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Ermitteln des Feiertagsnamens für {Datum}", datum);
+                return string.Empty;
+            }
+        }
+
+        public void ClearCache()
+        {
+            _cache.Clear();
+            _logger.LogInformation("Feiertage-Cache geleert");
+        }
+
+        public int GetCacheSize()
+        {
+            return _cache.Count;
+        }
+
+        public Dictionary<int, int> GetCacheStatistics()
+        {
+            return _cache.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.Count
+            );
         }
     }
 }

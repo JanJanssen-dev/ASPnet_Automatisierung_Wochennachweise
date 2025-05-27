@@ -20,7 +20,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             Directory.CreateDirectory(Path.Combine(_outputBasePath, "Umschulung"));
         }
 
-        public string GenerateDocument(WochennachweisModel wochennachweis)
+        public string GenerateDocument(Wochennachweis wochennachweis)
         {
             string outputDir = Path.Combine(_outputBasePath, wochennachweis.Kategorie);
             string outputPath = Path.Combine(outputDir, wochennachweis.Dateiname);

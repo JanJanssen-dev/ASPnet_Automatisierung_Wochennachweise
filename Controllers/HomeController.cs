@@ -28,7 +28,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
             };
 
             // Zeiträume aus Session laden, falls vorhanden
-            if (HttpContext.Session.Get<List<ZeitraumModel>>("Zeitraeume") is List<ZeitraumModel> zeitraeume && zeitraeume.Any())
+            if (HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume") is List<Zeitraum> zeitraeume && zeitraeume.Any())
             {
                 config.Zeitraeume = zeitraeume;
             }
@@ -40,7 +40,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         public IActionResult AddZeitraum(UmschulungConfig model)
         {
             // Zeiträume aus Session laden oder neue Liste erstellen
-            var zeitraeume = HttpContext.Session.Get<List<ZeitraumModel>>("Zeitraeume") ?? new List<ZeitraumModel>();
+            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume") ?? new List<Zeitraum>();
 
             // Validieren
             if (model.NeuZeitraum.Ende < model.NeuZeitraum.Start)
@@ -51,7 +51,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
             }
 
             // Neuen Zeitraum hinzufügen
-            zeitraeume.Add(new ZeitraumModel
+            zeitraeume.Add(new Zeitraum
             {
                 Start = model.NeuZeitraum.Start,
                 Ende = model.NeuZeitraum.Ende,
@@ -76,7 +76,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 Vorname = model.Vorname,
                 Klasse = model.Klasse,
                 Zeitraeume = zeitraeume,
-                NeuZeitraum = new ZeitraumModel
+                NeuZeitraum = new Zeitraum
                 {
                     Start = DateTime.Today,
                     Ende = DateTime.Today.AddMonths(3)
@@ -90,7 +90,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         [HttpPost]
         public IActionResult DeleteZeitraum(int index)
         {
-            var zeitraeume = HttpContext.Session.Get<List<ZeitraumModel>>("Zeitraeume");
+            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume");
             if (zeitraeume != null && index >= 0 && index < zeitraeume.Count)
             {
                 zeitraeume.RemoveAt(index);
@@ -110,7 +110,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 Nachname = nachname,
                 Vorname = vorname,
                 Klasse = klasse,
-                Zeitraeume = zeitraeume ?? new List<ZeitraumModel>()
+                Zeitraeume = zeitraeume ?? new List<Zeitraum>()
             };
 
             return View("Index", config);
@@ -120,7 +120,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         public IActionResult Generate(UmschulungConfig config)
         {
             // Zeiträume aus Session verwenden
-            var zeitraeume = HttpContext.Session.Get<List<ZeitraumModel>>("Zeitraeume");
+            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume");
 
             if (zeitraeume == null || !zeitraeume.Any())
             {
@@ -146,7 +146,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         public IActionResult Result()
         {
             // Daten aus der Session laden
-            var wochenListe = HttpContext.Session.Get<List<WochennachweisModel>>("Wochennachweise");
+            var wochenListe = HttpContext.Session.Get<List<Wochennachweis>>("Wochennachweise");
             var nachname = HttpContext.Session.GetString("Nachname");
             var vorname = HttpContext.Session.GetString("Vorname");
             var klasse = HttpContext.Session.GetString("Klasse");

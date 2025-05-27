@@ -6,7 +6,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public string Nachname { get; set; } = string.Empty;
         public string Vorname { get; set; } = string.Empty;
         public string Klasse { get; set; } = string.Empty;
-        public List<ZeitraumModel> Zeitraeume { get; set; } = new();
-        public ZeitraumModel? NeuerZeitraum { get; set; } = new ZeitraumModel();
+        public List<Zeitraum> Zeitraeume { get; set; } = new();
+        public Zeitraum? NeuerZeitraum { get; set; } = new Zeitraum();
     }
 }

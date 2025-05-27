@@ -13,7 +13,9 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Wochennachweis Generator</a>
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-file-earmark-word me-2"></i>Wochennachweis Generator
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -21,16 +23,26 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Generator</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-house me-1"></i>Generator
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Datenschutz</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">
+                                <i class="bi bi-shield-check me-1"></i>Datenschutz
+                            </a>
                         </li>
                     </ul>
+                    <span class="navbar-text">
+                        <small class="text-muted">
+                            <i class="bi bi-cpu me-1"></i>Client-seitige Generierung
+                        </small>
+                    </span>
                 </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -39,12 +51,52 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; @DateTime.Now.Year - Wochennachweis Generator - <a asp-area="" asp-controller="Home" asp-action="Privacy">Datenschutz</a>
+            &copy; @DateTime.Now.Year - Wochennachweis Generator -
+            <a asp-area="" asp-controller="Home" asp-action="Privacy">Datenschutz</a>
+            <span class="float-end">
+                <small>
+                    <i class="bi bi-lightning me-1"></i>Powered by Client-Side Generation
+                </small>
+            </span>
         </div>
     </footer>
+
+    <!-- Standard Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Client-seitige Dokumentenerstellung Libraries -->
+    <!-- PizZip für ZIP-Handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.6/pizzip.min.js"
+            integrity="sha512-JKWbL1dQ842/7psClSB9V7VX1QZ2PAnCz5dedOwfDhE1Fk/EC7av8vTrCaM/F6hh88XJzSztVR1qe2RQ9CYGjw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Docxtemplater für Word-Template-Verarbeitung -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.44.0/docxtemplater.min.js"
+            integrity="sha512-J7Vgov2ZrL/BVNa9oHJv4kNDTANdDfE7wJPUP1/MIJQe0wWHKhH0aFBi+LqJ6YHUo7TmGUQV5DwQBPK8uLfrxA=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- JSZip für ZIP-Archiv-Erstellung -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+            integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <!-- Eigene Scripts -->
+    <script src="~/js/wochennachweis-generator.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Debug-Informationen in Development -->
+    @if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+    {
+        <script>
+            console.log('🔧 Development Mode aktiv');
+            console.log('📚 Libraries geladen:');
+            console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
+            console.log('- Docxtemplater:', typeof Docxtemplater !== 'undefined' ? '✅' : '❌');
+            console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
+        </script>
+    }
 </body>
 </html>

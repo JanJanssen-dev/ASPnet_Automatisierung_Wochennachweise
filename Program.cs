@@ -1,9 +1,22 @@
-using ASPnet_Automatisierung_Wochennachweise.Services;
+﻿using ASPnet_Automatisierung_Wochennachweise.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// API Controller Support hinzufügen
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // JSON-Serialisierung konfigurieren
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        options.JsonSerializerOptions.WriteIndented = true;
+        // Deutsche Datumsformate unterstützen
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
+// Session für Zeiträume-Management
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -11,10 +24,29 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// CORS für lokale Entwicklung und Client-seitige API-Calls
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // Services registrieren
 builder.Services.AddSingleton<FeiertagService>();
 builder.Services.AddScoped<WochennachweisGenerator>();
-builder.Services.AddScoped<DocumentService>();
+builder.Services.AddScoped<DocumentService>(); // Bleibt für Fallback-Funktionalität
+
+// Logging konfigurieren
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddDebug();
+}
 
 var app = builder.Build();
 
@@ -24,17 +56,34 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+else
+{
+    // CORS nur in Development
+    app.UseCors("AllowLocalhost");
+    app.UseDeveloperExceptionPage();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 app.UseSession();
-
 app.UseAuthorization();
 
+// API Routes zuerst (wichtig für die Reihenfolge)
+app.MapControllers();
+
+// Standard MVC Routes
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Startup-Informationen loggen
+if (app.Environment.IsDevelopment())
+{
+    app.Logger.LogInformation("🚀 Wochennachweis-Generator gestartet");
+    app.Logger.LogInformation("📁 wwwroot Pfad: {WebRootPath}", app.Environment.WebRootPath);
+    app.Logger.LogInformation("🔗 API verfügbar unter: /api/wochennachweis/");
+}
 
 app.Run();
