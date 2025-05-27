@@ -1,3 +1,5 @@
+#nullable disable
+
 namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
     public class Zeitraum
@@ -7,7 +9,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public string Beschreibung { get; set; } = string.Empty;
         public string Kategorie { get; set; } = "Umschulung";
 
-        // Falls alter Code diese Properties verwendet:
+        // LEGACY PROPERTIES - Falls dein alter Code diese noch verwendet
         public DateTime Datum => Start;  // Alias für Start
         public string Name => Beschreibung; // Alias für Beschreibung
     }

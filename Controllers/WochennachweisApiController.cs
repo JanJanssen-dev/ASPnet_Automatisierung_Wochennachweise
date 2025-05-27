@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿#nullable disable
+
+using Microsoft.AspNetCore.Mvc;
 using ASPnet_Automatisierung_Wochennachweise.Models;
 using ASPnet_Automatisierung_Wochennachweise.Services;
 

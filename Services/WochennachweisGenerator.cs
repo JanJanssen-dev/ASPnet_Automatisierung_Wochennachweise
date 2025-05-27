@@ -22,11 +22,18 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         // NEUE METHODE: Nur Daten für Client-seitige Generierung
         public List<Wochennachweis> GenerateWochennachweiseData(UmschulungConfig config)
         {
+            if (config == null)
+                return new List<Wochennachweis>();
+
             var wochennachweise = new List<Wochennachweis>();
             int wochenNummer = 1;
 
-            foreach (var zeitraum in config.Zeitraeume ?? new List<Zeitraum>())
+            var zeitraeume = config.Zeitraeume ?? new List<Zeitraum>();
+
+            foreach (var zeitraum in zeitraeume)
             {
+                if (zeitraum == null) continue;
+
                 var aktuelleDatum = zeitraum.Start;
 
                 while (aktuelleDatum <= zeitraum.Ende)
@@ -36,13 +43,16 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
 
                     if (montag <= zeitraum.Ende)
                     {
+                        var beschreibung = zeitraum.Beschreibung ?? string.Empty;
+                        var kategorie = zeitraum.Kategorie ?? "Umschulung";
+
                         var wochennachweis = new Wochennachweis
                         {
                             Nummer = wochenNummer++,
-                            Kategorie = zeitraum.Kategorie ?? "Umschulung",
+                            Kategorie = kategorie,
                             Montag = montag,
                             Samstag = samstag,
-                            Beschreibungen = new List<string> { zeitraum.Beschreibung ?? "" },
+                            Beschreibungen = new List<string> { beschreibung },
 
                             // Zusätzliche Felder für Client-Template
                             Jahr = montag.Year,
@@ -50,13 +60,13 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                             Wochentage = GenerateWochentage(montag),
                             IstFeiertag = CheckFeiertage(montag),
 
-                            // Originale Properties falls benötigt
-                            Dateiname = $"Wochennachweis_Woche_{wochenNummer:00}_{zeitraum.Kategorie}.docx",
+                            // Legacy Properties für Kompatibilität
+                            Dateiname = $"Wochennachweis_Woche_{wochenNummer:00}_{kategorie}.docx",
                             Zeitraum = $"{montag:dd.MM.yyyy} - {samstag:dd.MM.yyyy}",
-                            Nachname = config.Nachname ?? "",
-                            Vorname = config.Vorname ?? "",
-                            Klasse = config.Klasse ?? "",
-                            Tageseintraege = new List<string> { zeitraum.Beschreibung ?? "" }
+                            Nachname = config.Nachname ?? string.Empty,
+                            Vorname = config.Vorname ?? string.Empty,
+                            Klasse = config.Klasse ?? string.Empty,
+                            Tageseintraege = new List<string> { beschreibung }
                         };
 
                         wochennachweise.Add(wochennachweis);
@@ -72,13 +82,16 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         // Erweiterte Template-Daten für spezifische Woche generieren
         public Dictionary<string, string> GenerateTemplateData(Wochennachweis woche, UmschulungConfig config)
         {
+            if (woche == null || config == null)
+                return new Dictionary<string, string>();
+
             var templateData = new Dictionary<string, string>
             {
                 {"WOCHE", woche.Nummer.ToString()},
                 {"DATUM", $"{woche.Montag:dd.MM.yyyy} - {woche.Samstag:dd.MM.yyyy}"},
-                {"NACHNAME", config.Nachname ?? ""},
-                {"VORNAME", config.Vorname ?? ""},
-                {"KLASSE", config.Klasse ?? ""},
+                {"NACHNAME", config.Nachname ?? string.Empty},
+                {"VORNAME", config.Vorname ?? string.Empty},
+                {"KLASSE", config.Klasse ?? string.Empty},
                 {"AJ", woche.Ausbildungsjahr.ToString()},
                 {"UDATUM", DateTime.Now.ToString("dd.MM.yyyy")}
             };
@@ -99,7 +112,8 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 }
                 else
                 {
-                    templateData[eintragName] = woche.Beschreibungen?.FirstOrDefault() ?? "";
+                    var beschreibung = woche.Beschreibungen?.FirstOrDefault() ?? string.Empty;
+                    templateData[eintragName] = beschreibung;
                 }
             }
 
@@ -121,7 +135,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             {
                 jahre--;
             }
-            return jahre + 1;
+            return Math.Max(1, jahre + 1); // Mindestens Jahr 1
         }
 
         private List<DateTime> GenerateWochentage(DateTime montag)
@@ -138,7 +152,16 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             var feiertage = new Dictionary<DateTime, bool>();
             var jahr = montag.Year;
-            var alleFeiertage = _feiertagService?.GetFeiertage(jahr) ?? new List<DateTime>();
+
+            List<DateTime> alleFeiertage;
+            try
+            {
+                alleFeiertage = _feiertagService?.GetFeiertage(jahr) ?? new List<DateTime>();
+            }
+            catch
+            {
+                alleFeiertage = new List<DateTime>();
+            }
 
             for (int i = 0; i < 5; i++)
             {
@@ -156,8 +179,15 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 return true;
 
             // Feiertag
-            var feiertage = _feiertagService?.GetFeiertage(datum.Year) ?? new List<DateTime>();
-            return feiertage.Contains(datum.Date);
+            try
+            {
+                var feiertage = _feiertagService?.GetFeiertage(datum.Year) ?? new List<DateTime>();
+                return feiertage.Contains(datum.Date);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private string GetArbeitsfreierTagText(DateTime datum)
@@ -165,11 +195,21 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             if (datum.DayOfWeek == DayOfWeek.Saturday || datum.DayOfWeek == DayOfWeek.Sunday)
                 return "Wochenende";
 
-            var feiertage = _feiertagService?.GetFeiertage(datum.Year) ?? new List<DateTime>();
-            if (feiertage.Contains(datum.Date))
-                return "Feiertag";
+            try
+            {
+                var feiertage = _feiertagService?.GetFeiertage(datum.Year) ?? new List<DateTime>();
+                if (feiertage.Contains(datum.Date))
+                {
+                    var feiertagName = _feiertagService?.GetFeiertagName(datum) ?? "Feiertag";
+                    return string.IsNullOrEmpty(feiertagName) ? "Feiertag" : feiertagName;
+                }
+            }
+            catch
+            {
+                // Ignore errors
+            }
 
-            return "";
+            return string.Empty;
         }
     }
 }

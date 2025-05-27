@@ -1,3 +1,5 @@
+#nullable disable
+
 namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
     public class UmschulungConfig
@@ -7,7 +9,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public string Vorname { get; set; } = string.Empty;
         public string Klasse { get; set; } = string.Empty;
         public List<Zeitraum> Zeitraeume { get; set; } = new();
-        public Zeitraum? NeuZeitraum { get; set; } = new Zeitraum();
+        public Zeitraum NeuZeitraum { get; set; } = new Zeitraum();
     }
 }
 

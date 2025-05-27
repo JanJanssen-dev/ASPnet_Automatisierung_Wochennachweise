@@ -1,4 +1,6 @@
-﻿namespace ASPnet_Automatisierung_Wochennachweise.Models
+﻿#nullable disable
+
+namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
     public class WochennachweisClientData
     {
@@ -18,6 +20,10 @@
         public Dictionary<string, string> TemplateData { get; set; } = new();
         public int Jahr { get; set; }
         public int Ausbildungsjahr { get; set; }
+
+        // ALIAS PROPERTIES
+        public DateTime Datum => Montag;
+        public string Beschreibung => Beschreibungen?.FirstOrDefault() ?? string.Empty;
     }
 
     // Für die API-Request
