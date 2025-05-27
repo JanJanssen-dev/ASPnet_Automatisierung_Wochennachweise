@@ -1,16 +1,20 @@
-using Nager.Date;
+#nullable disable
+
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace ASPnet_Automatisierung_Wochennachweise.Services
 {
     public class FeiertagService
     {
         private readonly ConcurrentDictionary<int, List<DateTime>> _cache = new();
-        private readonly ILogger<FeiertagService>? _logger;
+        private readonly ILogger<FeiertagService> _logger;
+        private readonly HttpClient _httpClient;
 
-        public FeiertagService(ILogger<FeiertagService>? logger = null)
+        public FeiertagService(ILogger<FeiertagService> logger = null, HttpClient httpClient = null)
         {
             _logger = logger;
+            _httpClient = httpClient ?? new HttpClient();
         }
 
         public List<DateTime> GetFeiertage(int jahr)
@@ -24,45 +28,69 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             {
                 _logger?.LogInformation("Generiere Feiertage für Jahr {Jahr}", jahr);
 
-                var feiertage = new List<DateTime>();
+                // Zuerst versuchen wir die REST API
+                var feiertage = GetFeiertageFomAPI(jahr).Result;
 
-                // Deutsche Feiertage mit Nager.Date - Version 2.x API
-                try
+                if (feiertage.Count > 0)
                 {
-                    var publicHolidays = DateSystem.GetPublicHoliday(CountryCode.DE, jahr);
-
-                    foreach (var holiday in publicHolidays)
-                    {
-                        feiertage.Add(holiday.Date);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger?.LogWarning(ex, "Nager.Date API Fehler, verwende Fallback für Jahr {Jahr}", jahr);
-                    // Falls die API nicht funktioniert, verwenden wir den Fallback
+                    _logger?.LogInformation("Feiertage für {Jahr} von REST API erhalten: {Anzahl} Feiertage", jahr, feiertage.Count);
+                    return feiertage;
                 }
 
-                // Zusätzliche regionale Feiertage
-                AddRegionalHolidays(feiertage, jahr);
-
-                // Falls keine Feiertage geladen wurden, verwende Fallback
-                if (feiertage.Count == 0)
-                {
-                    feiertage = GetFallbackFeiertage(jahr);
-                }
-                else
-                {
-                    // Sortieren und Duplikate entfernen
-                    feiertage = feiertage.Distinct().OrderBy(d => d).ToList();
-                }
-
-                _logger?.LogInformation("Feiertage für {Jahr} generiert: {Anzahl} Feiertage", jahr, feiertage.Count);
-                return feiertage;
+                // Fallback wenn API nicht erreichbar
+                _logger?.LogWarning("REST API nicht erreichbar, verwende Fallback für Jahr {Jahr}", jahr);
+                return GetFallbackFeiertage(jahr);
             }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Fehler beim Generieren der Feiertage für Jahr {Jahr}", jahr);
                 return GetFallbackFeiertage(jahr);
+            }
+        }
+
+        private async Task<List<DateTime>> GetFeiertageFomAPI(int jahr)
+        {
+            try
+            {
+                // date.nager.at REST API - Deutschland
+                var url = $"https://date.nager.at/api/v3/publicholidays/{jahr}/DE";
+
+                _logger?.LogDebug("Rufe Feiertage-API auf: {Url}", url);
+
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger?.LogWarning("API Request fehlgeschlagen: {StatusCode}", response.StatusCode);
+                    return new List<DateTime>();
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var holidays = JsonSerializer.Deserialize<List<PublicHoliday>>(json);
+
+                var feiertage = new List<DateTime>();
+
+                if (holidays != null)
+                {
+                    foreach (var holiday in holidays)
+                    {
+                        if (DateTime.TryParse(holiday.Date, out DateTime date))
+                        {
+                            feiertage.Add(date.Date);
+                        }
+                    }
+                }
+
+                // Zusätzliche regionale Feiertage hinzufügen
+                AddRegionalHolidays(feiertage, jahr);
+
+                // Sortieren und Duplikate entfernen
+                return feiertage.Distinct().OrderBy(d => d).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Fehler beim Abrufen der Feiertage von der REST API für Jahr {Jahr}", jahr);
+                return new List<DateTime>();
             }
         }
 
@@ -91,27 +119,6 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             }
         }
 
-        private DateTime GetEasterSunday(int jahr)
-        {
-            // Gauss'sche Osterformel
-            int a = jahr % 19;
-            int b = jahr / 100;
-            int c = jahr % 100;
-            int d = b / 4;
-            int e = b % 4;
-            int f = (b + 8) / 25;
-            int g = (b - f + 1) / 3;
-            int h = (19 * a + b - d - g + 15) % 30;
-            int i = c / 4;
-            int k = c % 4;
-            int l = (32 + 2 * e + 2 * i - h - k) % 7;
-            int m = (a + 11 * h + 22 * l) / 451;
-            int month = (h + l - 7 * m + 114) / 31;
-            int day = ((h + l - 7 * m + 114) % 31) + 1;
-
-            return new DateTime(jahr, month, day);
-        }
-
         private List<DateTime> GetFallbackFeiertage(int jahr)
         {
             // Fallback mit den wichtigsten deutschen Feiertagen
@@ -134,6 +141,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 feiertage.Add(easter.AddDays(39));  // Christi Himmelfahrt
                 feiertage.Add(easter.AddDays(49));  // Pfingstsonntag
                 feiertage.Add(easter.AddDays(50));  // Pfingstmontag
+
+                // Zusätzliche regionale Feiertage
+                AddRegionalHolidays(feiertage, jahr);
             }
             catch (Exception ex)
             {
@@ -141,6 +151,27 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             }
 
             return feiertage.Distinct().OrderBy(d => d).ToList();
+        }
+
+        private DateTime GetEasterSunday(int jahr)
+        {
+            // Gauss'sche Osterformel
+            int a = jahr % 19;
+            int b = jahr / 100;
+            int c = jahr % 100;
+            int d = b / 4;
+            int e = b % 4;
+            int f = (b + 8) / 25;
+            int g = (b - f + 1) / 3;
+            int h = (19 * a + b - d - g + 15) % 30;
+            int i = c / 4;
+            int k = c % 4;
+            int l = (32 + 2 * e + 2 * i - h - k) % 7;
+            int m = (a + 11 * h + 22 * l) / 451;
+            int month = (h + l - 7 * m + 114) / 31;
+            int day = ((h + l - 7 * m + 114) % 31) + 1;
+
+            return new DateTime(jahr, month, day);
         }
 
         public bool IsFeiertag(DateTime datum)
@@ -163,19 +194,31 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             try
             {
-                // Spezielle Feiertage prüfen
                 var easter = GetEasterSunday(datum.Year);
-                if (datum.Date == easter.AddDays(-48).Date) return "Rosenmontag";
-                if (datum.Date == easter.AddDays(-47).Date) return "Karnevalsdienstag";
-                if (datum.Date == new DateTime(datum.Year, 12, 24).Date) return "Heiligabend";
-                if (datum.Date == new DateTime(datum.Year, 12, 31).Date) return "Silvester";
-                if (datum.Date == new DateTime(datum.Year, 1, 1).Date) return "Neujahr";
-                if (datum.Date == new DateTime(datum.Year, 5, 1).Date) return "Tag der Arbeit";
-                if (datum.Date == new DateTime(datum.Year, 10, 3).Date) return "Tag der Deutschen Einheit";
-                if (datum.Date == new DateTime(datum.Year, 12, 25).Date) return "1. Weihnachtsfeiertag";
-                if (datum.Date == new DateTime(datum.Year, 12, 26).Date) return "2. Weihnachtsfeiertag";
 
-                return string.Empty;
+                var feiertage = new Dictionary<DateTime, string>
+                {
+                    { new DateTime(datum.Year, 1, 1), "Neujahr" },
+                    { new DateTime(datum.Year, 1, 6), "Heilige Drei Könige" },
+                    { easter.AddDays(-48), "Rosenmontag" },
+                    { easter.AddDays(-47), "Karnevalsdienstag" },
+                    { easter.AddDays(-2), "Karfreitag" },
+                    { easter, "Ostersonntag" },
+                    { easter.AddDays(1), "Ostermontag" },
+                    { new DateTime(datum.Year, 5, 1), "Tag der Arbeit" },
+                    { easter.AddDays(39), "Christi Himmelfahrt" },
+                    { easter.AddDays(49), "Pfingstsonntag" },
+                    { easter.AddDays(50), "Pfingstmontag" },
+                    { easter.AddDays(60), "Fronleichnam" },
+                    { new DateTime(datum.Year, 10, 3), "Tag der Deutschen Einheit" },
+                    { new DateTime(datum.Year, 11, 1), "Allerheiligen" },
+                    { new DateTime(datum.Year, 12, 24), "Heiligabend" },
+                    { new DateTime(datum.Year, 12, 25), "1. Weihnachtsfeiertag" },
+                    { new DateTime(datum.Year, 12, 26), "2. Weihnachtsfeiertag" },
+                    { new DateTime(datum.Year, 12, 31), "Silvester" }
+                };
+
+                return feiertage.TryGetValue(datum.Date, out string name) ? name : string.Empty;
             }
             catch (Exception ex)
             {
@@ -189,5 +232,25 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             _cache.Clear();
             _logger?.LogInformation("Feiertage-Cache geleert");
         }
+
+        // Dispose HttpClient ordnungsgemäß
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
+        }
+    }
+
+    // DTO für die REST API Response
+    public class PublicHoliday
+    {
+        public string Date { get; set; }
+        public string LocalName { get; set; }
+        public string Name { get; set; }
+        public string CountryCode { get; set; }
+        public bool Fixed { get; set; }
+        public bool Global { get; set; }
+        public List<string> Counties { get; set; }
+        public int LaunchYear { get; set; }
+        public List<string> Types { get; set; }
     }
 }

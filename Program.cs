@@ -37,6 +37,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+// HttpClient für Feiertag-API registrieren
+builder.Services.AddHttpClient<FeiertagService>(client =>
+{
+    client.BaseAddress = new Uri("https://date.nager.at/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("User-Agent", "WochennachweisGenerator/1.0");
+});
+
 // Services registrieren
 builder.Services.AddSingleton<FeiertagService>();
 builder.Services.AddScoped<WochennachweisGenerator>();
@@ -86,6 +94,7 @@ if (app.Environment.IsDevelopment())
     app.Logger.LogInformation("🚀 Wochennachweis-Generator gestartet");
     app.Logger.LogInformation("📁 wwwroot Pfad: {WebRootPath}", app.Environment.WebRootPath);
     app.Logger.LogInformation("🔗 API verfügbar unter: /api/wochennachweis/");
+    app.Logger.LogInformation("🎃 Feiertage-API: https://date.nager.at/api/v3/publicholidays/");
 }
 
 app.Run();
