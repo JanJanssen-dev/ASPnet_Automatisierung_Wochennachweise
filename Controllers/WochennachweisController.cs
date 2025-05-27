@@ -81,11 +81,30 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
 
                 if (!System.IO.File.Exists(templatePath))
                 {
-                    return NotFound(new { error = "Template nicht gefunden", path = templatePath });
+                    return NotFound(new
+                    {
+                        error = "Template nicht gefunden",
+                        path = templatePath,
+                        webRootPath = _environment.WebRootPath,
+                        fullPath = Path.GetFullPath(templatePath)
+                    });
                 }
 
                 var templateBytes = System.IO.File.ReadAllBytes(templatePath);
-                return File(templateBytes,
+
+                // Prüfe, ob die Datei eine gültige Größe hat
+                if (templateBytes.Length < 1000)
+                {
+                    return BadRequest(new
+                    {
+                        error = "Template-Datei zu klein",
+                        size = templateBytes.Length,
+                        path = templatePath
+                    });
+                }
+
+                return File(
+                    templateBytes,
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     "template.docx");
             }
@@ -94,10 +113,12 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 return BadRequest(new
                 {
                     error = "Fehler beim Laden des Templates",
-                    message = ex.Message
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace
                 });
             }
         }
+
 
         [HttpGet("feiertage/{year}")]
         public ActionResult<List<DateTime>> GetFeiertage(int year)

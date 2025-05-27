@@ -23,7 +23,6 @@
                 </div>
             }
 
-
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
@@ -157,6 +156,11 @@
                                 Wochennachweise generieren
                                 <br><small class="fw-normal">Client-seitige Erstellung</small>
                             </button>
+                            <!-- NEUER TEST-BUTTON -->
+                            <button type="button" class="btn btn-outline-secondary ms-2" id="test-docxtemplater-button">
+                                <i class="bi bi-wrench me-1"></i>
+                                Docxtemplater testen
+                            </button>
 
                             @if (!Model.Zeitraeume.Any())
                             {
@@ -180,6 +184,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-action="AddZeitraum" method="post">
+                @Html.AntiForgeryToken()
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="zeitraumModalLabel">
                         <i class="bi bi-plus-circle me-2"></i>Neuen Zeitraum hinzufügen
@@ -247,13 +252,6 @@
 
 @section Scripts {
     <script>
-        // Diese Funktion zum Schließen des Modals nach einem erfolgreichen Submit hinzufügen
-        function closeZeitraumModal() {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('zeitraumModal'));
-            if (modal) {
-                modal.hide();
-            }
-        }
         document.addEventListener('DOMContentLoaded', function () {
             // Validierung für den Modal-Dialog
             const modalForm = document.querySelector('#zeitraumModal form');
@@ -288,8 +286,8 @@
             // Debug: Zeige verfügbare Daten
             console.log('🔍 Index.cshtml geladen');
             console.log('📊 Verfügbare Zeiträume:', @Model.Zeitraeume.Count);
-        
-                 // Debug für Zeitraum-Hinzufügen-Formular
+
+            // Debug für Zeitraum-Hinzufügen-Formular
             const zeitraumForm = document.querySelector('#zeitraumModal form');
             if (zeitraumForm) {
                 zeitraumForm.addEventListener('submit', function(e) {
@@ -335,6 +333,15 @@
             }
         });
     </script>
+    @if (TempData["CloseModal"] != null && Convert.ToBoolean(TempData["CloseModal"]))
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('🔒 Modal wird geschlossen (TempData-Signal)');
+                closeZeitraumModal();
+            });
+        </script>
+    }
 
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");

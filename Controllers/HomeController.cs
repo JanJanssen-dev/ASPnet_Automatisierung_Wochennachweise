@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using ASPnet_Automatisierung_Wochennachweise.Models;
 using ASPnet_Automatisierung_Wochennachweise.Services;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace ASPnet_Automatisierung_Wochennachweise.Controllers
 {
@@ -27,25 +28,11 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         [HttpPost]
         public IActionResult AddZeitraum(UmschulungConfig config)
         {
-            // Debug-Loggen
-            _logger.LogInformation("AddZeitraum aufgerufen mit NeuZeitraum: {@NeuZeitraum}", config.NeuZeitraum);
-
-            if (config.NeuZeitraum != null)
+            try
             {
-                // Validiere Start- und Enddatum
-                if (config.NeuZeitraum.Ende < config.NeuZeitraum.Start)
-                {
-                    TempData["StatusMessage"] = "Fehler: Enddatum muss nach dem Startdatum liegen.";
-                    TempData["StatusMessageType"] = "danger";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                if (string.IsNullOrWhiteSpace(config.NeuZeitraum.Beschreibung))
-                {
-                    TempData["StatusMessage"] = "Fehler: Beschreibung darf nicht leer sein.";
-                    TempData["StatusMessageType"] = "danger";
-                    return RedirectToAction(nameof(Index));
-                }
+                // Debug-Logging
+                _logger.LogInformation("AddZeitraum aufgerufen mit Daten: {Config}",
+                    JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true }));
 
                 // Existierende Konfiguration aus Session laden
                 var existingConfig = HttpContext.Session.Get<UmschulungConfig>("UmschulungConfig") ?? new UmschulungConfig();
@@ -56,29 +43,57 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 existingConfig.Vorname = config.Vorname ?? existingConfig.Vorname;
                 existingConfig.Klasse = config.Klasse ?? existingConfig.Klasse;
 
-                // Neuen Zeitraum hinzufügen
-                existingConfig.Zeitraeume.Add(new Zeitraum
+                if (config.NeuZeitraum != null)
                 {
-                    Start = config.NeuZeitraum.Start,
-                    Ende = config.NeuZeitraum.Ende,
-                    Kategorie = config.NeuZeitraum.Kategorie,
-                    Beschreibung = config.NeuZeitraum.Beschreibung
-                });
+                    // Validierungen
+                    if (config.NeuZeitraum.Ende < config.NeuZeitraum.Start)
+                    {
+                        TempData["StatusMessage"] = "Fehler: Enddatum muss nach dem Startdatum liegen.";
+                        TempData["StatusMessageType"] = "danger";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    if (string.IsNullOrWhiteSpace(config.NeuZeitraum.Beschreibung))
+                    {
+                        TempData["StatusMessage"] = "Fehler: Bitte geben Sie eine Beschreibung ein.";
+                        TempData["StatusMessageType"] = "danger";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    // Zeitraum hinzufügen
+                    existingConfig.Zeitraeume.Add(new Zeitraum
+                    {
+                        Kategorie = config.NeuZeitraum.Kategorie,
+                        Start = config.NeuZeitraum.Start,
+                        Ende = config.NeuZeitraum.Ende,
+                        Beschreibung = config.NeuZeitraum.Beschreibung
+                    });
+
+                    // Erfolg signalisieren
+                    TempData["StatusMessage"] = "Zeitraum erfolgreich hinzugefügt.";
+                    TempData["StatusMessageType"] = "success";
+                    TempData["CloseModal"] = true;
+                }
+                else
+                {
+                    TempData["StatusMessage"] = "Fehler: Keine Zeitraumdaten übermittelt.";
+                    TempData["StatusMessageType"] = "danger";
+                }
 
                 // In Session speichern
                 HttpContext.Session.Set("UmschulungConfig", existingConfig);
 
-                TempData["StatusMessage"] = "Zeitraum erfolgreich hinzugefügt!";
-                TempData["StatusMessageType"] = "success";
+                return RedirectToAction(nameof(Index));
             }
-            else
+            catch (Exception ex)
             {
-                TempData["StatusMessage"] = "Fehler: Keine Zeitraumdaten übermittelt.";
+                _logger.LogError(ex, "Fehler beim Hinzufügen des Zeitraums");
+                TempData["StatusMessage"] = "Fehler: Ein unerwarteter Fehler ist aufgetreten.";
                 TempData["StatusMessageType"] = "danger";
+                return RedirectToAction(nameof(Index));
             }
-
-            return RedirectToAction(nameof(Index));
         }
+
 
         [HttpPost]
         public IActionResult DeleteZeitraum(int index)

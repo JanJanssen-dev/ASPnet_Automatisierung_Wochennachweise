@@ -52,10 +52,14 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             try
             {
+                
                 // date.nager.at REST API - Deutschland
-                var url = $"https://date.nager.at/api/v3/publicholidays/{jahr}/DE";
+                string baseUrl = "https://date.nager.at/api/v3/publicholidays/";
+                string url = baseUrl + jahr.ToString() + "/DE";
 
                 _logger?.LogDebug("Rufe Feiertage-API auf: {Url}", url);
+
+               
 
                 var response = await _httpClient.GetAsync(url);
 

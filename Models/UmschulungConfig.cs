@@ -3,13 +3,13 @@ using ASPnet_Automatisierung_Wochennachweise.Models;
 public class UmschulungConfig
 {
     public DateTime Umschulungsbeginn { get; set; } = DateTime.Today;
-    public string Nachname { get; set; }
-    public string Vorname { get; set; }
-    public string Klasse { get; set; }
+    public string Nachname { get; set; } = string.Empty;
+    public string Vorname { get; set; } = string.Empty ;
+    public string Klasse { get; set; } = string.Empty;
     public List<Zeitraum> Zeitraeume { get; set; } = new List<Zeitraum>();
 
     // Standardmäßig initialisiert mit Werten
-    private Zeitraum _neuZeitraum;
+    private Zeitraum? _neuZeitraum;
     public Zeitraum NeuZeitraum
     {
         get

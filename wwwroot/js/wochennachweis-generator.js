@@ -154,6 +154,9 @@ class ClientWochennachweisGenerator {
         }
     }
 
+
+
+
     getConfigFromForm() {
         return {
             umschulungsbeginn: document.getElementById('Umschulungsbeginn')?.value || '',
@@ -209,38 +212,150 @@ class ClientWochennachweisGenerator {
 
         return true;
     }
+    async testDocxtemplater() {
+        try {
+            this.showProgress('🔧 Teste Docxtemplater...');
+
+            // 1. Bibliotheken prüfen
+            if (typeof PizZip === 'undefined') {
+                this.showError('PizZip-Bibliothek nicht geladen!');
+                return false;
+            }
+            if (typeof docxtemplater === 'undefined') {
+                this.showError('Docxtemplater-Bibliothek nicht geladen!');
+                return false;
+            }
+
+            // 2. Vollständigeres Test-Dokument erstellen
+            const zip = new PizZip();
+
+            // Minimale Word-Dateistruktur
+            zip.file("word/document.xml",
+                `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                <w:body>
+                    <w:p>
+                        <w:r>
+                            <w:t>{{name}}</w:t>
+                        </w:r>
+                    </w:p>
+                </w:body>
+            </w:document>`
+            );
+
+            zip.file("[Content_Types].xml",
+                `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+                <Default Extension="xml" ContentType="application/xml"/>
+                <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+                <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+            </Types>`
+            );
+
+            zip.file("_rels/.rels",
+                `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+            </Relationships>`
+            );
+
+            zip.file("word/_rels/document.xml.rels",
+                `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+            </Relationships>`
+            );
+
+            try {
+                // 3. Docxtemplater verwenden
+                const doc = new docxtemplater();
+                doc.loadZip(zip);
+                doc.setOptions({
+                    paragraphLoop: true,
+                    linebreaks: true,
+                    delimiters: { start: '{{', end: '}}' }
+                });
+
+                // Testdaten setzen
+                doc.setData({
+                    name: 'Docxtemplater Test erfolgreich! Aktuelle Zeit: ' + new Date().toLocaleTimeString()
+                });
+
+                // Rendern
+                doc.render();
+
+                // Als Blob generieren
+                const out = doc.getZip().generate({ type: 'blob' });
+
+                // Erfolgsmeldung und Download
+                this.showSuccess('✅ Docxtemplater funktioniert! Das Test-Dokument wird heruntergeladen.');
+                this.downloadBlob(out, 'docxtemplater-test.docx');
+                return true;
+            } catch (innerError) {
+                console.error('Fehler beim Erstellen des Test-Dokuments:', innerError);
+                this.showError(`Fehler im Docxtemplater: ${innerError.message}`);
+                return false;
+            }
+        } catch (error) {
+            console.error('Docxtemplater Test fehlgeschlagen:', error);
+            this.showError(`Test fehlgeschlagen: ${error.message}`);
+            return false;
+        }
+    }
+
 
     async createDocument(wochenData) {
         try {
-            // PizZip und Docxtemplater verwenden
+            // 1. PizZip-Instanz mit dem Template erstellen
             const zip = new PizZip(this.template);
-            const doc = new Docxtemplater(zip, {
+
+            // 2. Docxtemplater initialisieren
+            const doc = new docxtemplater();
+            doc.loadZip(zip);
+
+            // 3. Optionen setzen - WICHTIG: überprüfe deine Template-Delimiters!
+            doc.setOptions({
                 paragraphLoop: true,
                 linebreaks: true,
                 delimiters: {
-                    start: '{{',
+                    start: '{{',  // Stellen Sie sicher, dass diese mit Ihrem Template übereinstimmen
                     end: '}}'
                 }
             });
 
-            // Template-Daten setzen
-            doc.render(wochenData.templateData);
+            // 4. Daten setzen
+            doc.setData(wochenData.templateData);
 
-            // Dokument als ArrayBuffer generieren
+            // 5. Template rendern
+            doc.render();
+
+            // 6. Output generieren
             const output = doc.getZip().generate({
-                type: 'arraybuffer',
-                compression: 'DEFLATE',
+                type: 'arraybuffer', // Wichtig für den Download
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                compression: 'DEFLATE'
             });
 
             return output;
         } catch (error) {
             console.error('❌ Docxtemplater Fehler:', error);
-            if (error.properties) {
-                console.error('Docxtemplater Details:', error.properties);
+
+            // Detaillierte Fehlerinformationen zeigen
+            if (error.properties && error.properties.errors) {
+                error.properties.errors.forEach(err => {
+                    console.log('Fehler bei Tag:', err.properties.tag);
+                    console.log('Kontext:', err.properties.context);
+                    console.log('Datei:', err.properties.file);
+                    console.log('Erklärung:', err.properties.explanation);
+                });
             }
+
             throw new Error(`Dokumenterstellung fehlgeschlagen: ${error.message}`);
         }
     }
+
+
+    
+
 
     async createZipDownload(documents, metaData) {
         try {
@@ -398,6 +513,14 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             console.log('📝 Starte Client-seitige Generierung...');
             await wochennachweisGenerator.generateDocuments();
+        });
+    }
+    // NEUER CODE: Event-Handler für den Test-Button
+    const testButton = document.getElementById('test-docxtemplater-button');
+    if (testButton) {
+        testButton.addEventListener('click', async function () {
+            console.log('🔧 Starte Docxtemplater-Test...');
+            await wochennachweisGenerator.testDocxtemplater();
         });
     }
 
