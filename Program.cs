@@ -45,10 +45,10 @@ builder.Services.AddHttpClient<FeiertagService>(client =>
     client.DefaultRequestHeaders.Add("User-Agent", "WochennachweisGenerator/1.0");
 });
 
-// Services registrieren
+// Services registrieren - NUR noch die, die wir brauchen
 builder.Services.AddSingleton<FeiertagService>();
 builder.Services.AddScoped<WochennachweisGenerator>();
-builder.Services.AddScoped<DocumentService>(); // Bleibt für Fallback-Funktionalität
+// DocumentService entfernt - nicht mehr benötigt für Client-seitige Generierung
 
 // Logging konfigurieren
 builder.Logging.ClearProviders();
@@ -91,10 +91,11 @@ app.MapControllerRoute(
 // Startup-Informationen loggen
 if (app.Environment.IsDevelopment())
 {
-    app.Logger.LogInformation("🚀 Wochennachweis-Generator gestartet");
+    app.Logger.LogInformation("🚀 Wochennachweis-Generator gestartet (Client-seitige Generierung)");
     app.Logger.LogInformation("📁 wwwroot Pfad: {WebRootPath}", app.Environment.WebRootPath);
     app.Logger.LogInformation("🔗 API verfügbar unter: /api/wochennachweis/");
     app.Logger.LogInformation("🎃 Feiertage-API: https://date.nager.at/api/v3/publicholidays/");
+    app.Logger.LogInformation("💻 Client-seitige Dokumenterstellung aktiv");
 }
 
 app.Run();

@@ -1,54 +1,58 @@
 ﻿@model List<Wochennachweis>
 @{
-    ViewData["Title"] = "Generierte Wochennachweise";
+    ViewData["Title"] = "Wochennachweis-Übersicht";
 }
 
 <div class="text-center mb-4">
-    <h1 class="display-4">Generierte Wochennachweise</h1>
-    <p>Für @ViewBag.Nachname wurden @Model.Count Wochennachweise erstellt.</p>
+    <h1 class="display-4">📋 Wochennachweis-Übersicht</h1>
+    <p>Für @ViewBag.Nachname wurden @Model.Count Wochennachweise berechnet.</p>
 
-    @if (Model.Any())
-    {
-        <a asp-action="DownloadAll" class="btn btn-success mb-3">
-            <i class="bi bi-file-earmark-zip"></i> Alle als ZIP herunterladen
-        </a>
-    }
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Client-seitige Generierung:</strong>
+        Die eigentlichen Word-Dokumente werden direkt in Ihrem Browser erstellt.
+        Gehen Sie zurück zur <a asp-action="Index" class="alert-link">Startseite</a>
+        und klicken Sie auf "Wochennachweise generieren".
+    </div>
 </div>
 
 <div class="row">
     <div class="col">
         <div class="card">
             <div class="card-header">
-                Praktikum (@Model.Count(w => w.Kategorie == "Praktikum") Nachweise)
+                <i class="bi bi-building me-2"></i>Praktikum (@Model.Count(w => w.Kategorie == "Praktikum") Nachweise)
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Woche</th>
-                                <th>Zeitraum</th>
-                                <th>Beschreibung</th>
-                                <th>Aktion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var woche in Model.Where(w => w.Kategorie == "Praktikum").OrderBy(w => w.Nummer))
-                            {
+                @if (Model.Any(w => w.Kategorie == "Praktikum"))
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
                                 <tr>
-                                    <td>@woche.Nummer</td>
-                                    <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
-                                    <td>@woche.Beschreibungen.FirstOrDefault()</td>
-                                    <td>
-                                        <a asp-action="Download" asp-route-id="@woche.Nummer" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-download"></i> Download
-                                        </a>
-                                    </td>
+                                    <th>Woche</th>
+                                    <th>Zeitraum</th>
+                                    <th>Beschreibung</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                @foreach (var woche in Model.Where(w => w.Kategorie == "Praktikum").OrderBy(w => w.Nummer))
+                                {
+                                    <tr>
+                                        <td><span class="badge bg-success">@woche.Nummer</span></td>
+                                        <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
+                                        <td>@woche.Beschreibungen.FirstOrDefault()</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-info-circle me-2"></i>Keine Praktikumswochen definiert.
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -58,41 +62,60 @@
     <div class="col">
         <div class="card">
             <div class="card-header">
-                Umschulung (@Model.Count(w => w.Kategorie == "Umschulung") Nachweise)
+                <i class="bi bi-mortarboard me-2"></i>Umschulung (@Model.Count(w => w.Kategorie == "Umschulung") Nachweise)
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Woche</th>
-                                <th>Zeitraum</th>
-                                <th>Beschreibung</th>
-                                <th>Aktion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var woche in Model.Where(w => w.Kategorie == "Umschulung").OrderBy(w => w.Nummer))
-                            {
+                @if (Model.Any(w => w.Kategorie == "Umschulung"))
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
                                 <tr>
-                                    <td>@woche.Nummer</td>
-                                    <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
-                                    <td>@woche.Beschreibungen.FirstOrDefault()</td>
-                                    <td>
-                                        <a asp-action="Download" asp-route-id="@woche.Nummer" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-download"></i> Download
-                                        </a>
-                                    </td>
+                                    <th>Woche</th>
+                                    <th>Zeitraum</th>
+                                    <th>Beschreibung</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                @foreach (var woche in Model.Where(w => w.Kategorie == "Umschulung").OrderBy(w => w.Nummer))
+                                {
+                                    <tr>
+                                        <td><span class="badge bg-primary">@woche.Nummer</span></td>
+                                        <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
+                                        <td>@woche.Beschreibungen.FirstOrDefault()</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-info-circle me-2"></i>Keine Umschulungswochen definiert.
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
 <div class="text-center mt-4">
-    <a asp-action="Index" class="btn btn-outline-secondary">Zurück zur Startseite</a>
+    <a asp-action="Index" class="btn btn-primary btn-lg">
+        <i class="bi bi-arrow-left me-2"></i>Zurück zur Startseite
+    </a>
+    <div class="mt-2">
+        <small class="text-muted">
+            <i class="bi bi-lightbulb me-1"></i>
+            Tipp: Verwenden Sie die Client-seitige Generierung für die besten Ergebnisse
+        </small>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        console.log('📋 Result-Ansicht geladen');
+        console.log('📊 Anzahl Wochennachweise:', @Model.Count);
+        console.log('💡 Hinweis: Für die Dokumentenerstellung zurück zur Startseite gehen');
+    </script>
+}

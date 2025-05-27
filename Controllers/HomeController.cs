@@ -1,3 +1,5 @@
+#nullable disable
+
 using Microsoft.AspNetCore.Mvc;
 using ASPnet_Automatisierung_Wochennachweise.Models;
 using ASPnet_Automatisierung_Wochennachweise.Services;
@@ -9,203 +11,107 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly WochennachweisGenerator _generator;
-        private readonly DocumentService _documentService;
 
-        public HomeController(ILogger<HomeController> logger,
-            WochennachweisGenerator generator,
-            DocumentService documentService)
+        public HomeController(ILogger<HomeController> logger, WochennachweisGenerator generator)
         {
             _logger = logger;
             _generator = generator;
-            _documentService = documentService;
         }
 
         public IActionResult Index()
         {
-            var config = new UmschulungConfig
-            {
-                Umschulungsbeginn = new DateTime(2024, 1, 29)
-            };
-
-            // Zeiträume aus Session laden, falls vorhanden
-            if (HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume") is List<Zeitraum> zeitraeume && zeitraeume.Any())
-            {
-                config.Zeitraeume = zeitraeume;
-            }
-
+            var config = HttpContext.Session.Get<UmschulungConfig>("UmschulungConfig") ?? new UmschulungConfig();
             return View(config);
         }
 
         [HttpPost]
-        public IActionResult AddZeitraum(UmschulungConfig model)
+        public IActionResult AddZeitraum(UmschulungConfig config)
         {
-            // Zeiträume aus Session laden oder neue Liste erstellen
-            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume") ?? new List<Zeitraum>();
-
-            // Validieren
-            if (model.NeuZeitraum.Ende < model.NeuZeitraum.Start)
+            if (config.NeuZeitraum != null && ModelState.IsValid)
             {
-                ModelState.AddModelError("NeuZeitraum.Ende", "Das Enddatum muss nach dem Startdatum liegen.");
-                model.Zeitraeume = zeitraeume;
-                return View("Index", model);
+                // Existierende Konfiguration aus Session laden
+                var existingConfig = HttpContext.Session.Get<UmschulungConfig>("UmschulungConfig") ?? new UmschulungConfig();
+
+                // Grunddaten aktualisieren
+                existingConfig.Umschulungsbeginn = config.Umschulungsbeginn;
+                existingConfig.Nachname = config.Nachname;
+                existingConfig.Vorname = config.Vorname;
+                existingConfig.Klasse = config.Klasse;
+
+                // Neuen Zeitraum hinzufügen
+                existingConfig.Zeitraeume.Add(new Zeitraum
+                {
+                    Start = config.NeuZeitraum.Start,
+                    Ende = config.NeuZeitraum.Ende,
+                    Kategorie = config.NeuZeitraum.Kategorie,
+                    Beschreibung = config.NeuZeitraum.Beschreibung
+                });
+
+                // In Session speichern
+                HttpContext.Session.Set("UmschulungConfig", existingConfig);
+
+                TempData["StatusMessage"] = "Zeitraum erfolgreich hinzugefügt!";
             }
 
-            // Neuen Zeitraum hinzufügen
-            zeitraeume.Add(new Zeitraum
-            {
-                Start = model.NeuZeitraum.Start,
-                Ende = model.NeuZeitraum.Ende,
-                Kategorie = model.NeuZeitraum.Kategorie,
-                Beschreibung = model.NeuZeitraum.Beschreibung
-            });
-
-            // In Session speichern
-            HttpContext.Session.Set("Zeitraeume", zeitraeume);
-
-            // Andere Daten in Session speichern
-            HttpContext.Session.SetString("Nachname", model.Nachname);
-            HttpContext.Session.SetString("Vorname", model.Vorname);
-            HttpContext.Session.SetString("Klasse", model.Klasse);
-            HttpContext.Session.Set("Umschulungsbeginn", model.Umschulungsbeginn);
-
-            // Zurück zur Index-Seite mit aktualisierten Daten
-            var config = new UmschulungConfig
-            {
-                Umschulungsbeginn = model.Umschulungsbeginn,
-                Nachname = model.Nachname,
-                Vorname = model.Vorname,
-                Klasse = model.Klasse,
-                Zeitraeume = zeitraeume,
-                NeuZeitraum = new Zeitraum
-                {
-                    Start = DateTime.Today,
-                    Ende = DateTime.Today.AddMonths(3)
-                }
-            };
-
-            TempData["StatusMessage"] = "Zeitraum wurde erfolgreich hinzugefügt.";
-            return View("Index", config);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         public IActionResult DeleteZeitraum(int index)
         {
-            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume");
-            if (zeitraeume != null && index >= 0 && index < zeitraeume.Count)
+            var config = HttpContext.Session.Get<UmschulungConfig>("UmschulungConfig");
+            if (config != null && index >= 0 && index < config.Zeitraeume.Count)
             {
-                zeitraeume.RemoveAt(index);
-                HttpContext.Session.Set("Zeitraeume", zeitraeume);
-                TempData["StatusMessage"] = "Zeitraum wurde entfernt.";
+                config.Zeitraeume.RemoveAt(index);
+                HttpContext.Session.Set("UmschulungConfig", config);
+                TempData["StatusMessage"] = "Zeitraum erfolgreich gelöscht!";
             }
 
-            // Andere Daten aus Session laden
-            var nachname = HttpContext.Session.GetString("Nachname") ?? string.Empty;
-            var vorname = HttpContext.Session.GetString("Vorname") ?? string.Empty;
-            var klasse = HttpContext.Session.GetString("Klasse") ?? string.Empty;
-            var beginn = HttpContext.Session.Get<DateTime?>("Umschulungsbeginn") ?? DateTime.Today;
-
-            var config = new UmschulungConfig
-            {
-                Umschulungsbeginn = beginn,
-                Nachname = nachname,
-                Vorname = vorname,
-                Klasse = klasse,
-                Zeitraeume = zeitraeume ?? new List<Zeitraum>()
-            };
-
-            return View("Index", config);
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
         public IActionResult Generate(UmschulungConfig config)
         {
-            // Zeiträume aus Session verwenden
-            var zeitraeume = HttpContext.Session.Get<List<Zeitraum>>("Zeitraeume");
+            // Existierende Konfiguration aus Session laden
+            var sessionConfig = HttpContext.Session.Get<UmschulungConfig>("UmschulungConfig") ?? new UmschulungConfig();
 
-            if (zeitraeume == null || !zeitraeume.Any())
+            // Grunddaten aktualisieren
+            sessionConfig.Umschulungsbeginn = config.Umschulungsbeginn;
+            sessionConfig.Nachname = config.Nachname;
+            sessionConfig.Vorname = config.Vorname;
+            sessionConfig.Klasse = config.Klasse;
+
+            // In Session speichern
+            HttpContext.Session.Set("UmschulungConfig", sessionConfig);
+
+            if (!sessionConfig.Zeitraeume.Any())
             {
-                ModelState.AddModelError(string.Empty, "Bitte fügen Sie mindestens einen Zeitraum hinzu.");
-                return View("Index", config);
+                TempData["StatusMessage"] = "Bitte fügen Sie mindestens einen Zeitraum hinzu.";
+                return RedirectToAction(nameof(Index));
             }
 
-            // Config mit Zeiträumen aus Session aktualisieren
-            config.Zeitraeume = zeitraeume;
-
-            // Wochennachweise generieren
-            var wochennachweise = _generator.GenerateWochennachweise(config);
-
-            // In Session speichern für die Ergebnis-Seite
-            HttpContext.Session.Set("Wochennachweise", wochennachweise);
-            HttpContext.Session.SetString("Nachname", config.Nachname);
-            HttpContext.Session.SetString("Vorname", config.Vorname);
-            HttpContext.Session.SetString("Klasse", config.Klasse);
-
-            return RedirectToAction("Result");
-        }
-
-        public IActionResult Result()
-        {
-            // Daten aus der Session laden
-            var wochenListe = HttpContext.Session.Get<List<Wochennachweis>>("Wochennachweise");
-            var nachname = HttpContext.Session.GetString("Nachname");
-            var vorname = HttpContext.Session.GetString("Vorname");
-            var klasse = HttpContext.Session.GetString("Klasse");
-
-
-            if (wochenListe == null || string.IsNullOrEmpty(nachname) || string.IsNullOrEmpty(vorname) || string.IsNullOrEmpty(klasse))
+            try
             {
-                return RedirectToAction("Index");
-            }
+                // HINWEIS: Die eigentliche Generierung erfolgt jetzt client-seitig!
+                // Dieser Controller-Action wird nur noch für Fallback/Demo-Zwecke verwendet
 
-            // Dokumente generieren
-            var generatedFiles = new Dictionary<int, string>();
-            foreach (var woche in wochenListe)
+                _logger.LogInformation("Client-seitige Generierung gestartet für {Nachname}", sessionConfig.Nachname);
+
+                // Nur Daten für Preview generieren (ohne Dokumente)
+                var wochennachweise = _generator.GenerateWochennachweiseData(sessionConfig);
+
+                ViewBag.Nachname = sessionConfig.Nachname;
+                ViewBag.IsClientGeneration = true; // Flag für die View
+
+                return View("Result", wochennachweise);
+            }
+            catch (Exception ex)
             {
-                var filePath = _documentService.GenerateDocument(woche);
-                generatedFiles[woche.Nummer] = filePath;
+                _logger.LogError(ex, "Fehler bei der Daten-Generierung für {Nachname}", sessionConfig.Nachname);
+                TempData["StatusMessage"] = $"Fehler bei der Generierung: {ex.Message}";
+                return RedirectToAction(nameof(Index));
             }
-
-            // Generierte Dateipfade in der Session speichern
-            HttpContext.Session.Set("GeneratedFiles", generatedFiles);
-
-            ViewBag.Nachname = nachname;
-            ViewBag.Vorname = vorname;
-            ViewBag.Klasse = klasse;
-
-            return View(wochenListe);
-        }
-
-        public IActionResult Download(int id)
-        {
-            var files = HttpContext.Session.Get<Dictionary<int, string>>("GeneratedFiles");
-
-            if (files == null || !files.ContainsKey(id))
-            {
-                return NotFound();
-            }
-
-            var filePath = files[id];
-            var fileName = Path.GetFileName(filePath);
-
-            return PhysicalFile(filePath, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName);
-        }
-
-        public IActionResult DownloadAll()
-        {
-            var files = HttpContext.Session.Get<Dictionary<int, string>>("GeneratedFiles");
-            var nachname = HttpContext.Session.GetString("Nachname");
-            var vorname = HttpContext.Session.GetString("Vorname");
-            var klasse = HttpContext.Session.GetString("Klasse");
-
-            if (files == null || string.IsNullOrEmpty(nachname))
-            {
-                return NotFound();
-            }
-
-            var zipPath = _documentService.CreateZipArchive(files.Values.ToList(), nachname);
-            var zipFileName = Path.GetFileName(zipPath);
-
-            return PhysicalFile(zipPath, "application/zip", zipFileName);
         }
 
         public IActionResult Privacy()
