@@ -156,7 +156,7 @@
                                 Wochennachweise generieren
                                 <br><small class="fw-normal">Client-seitige Erstellung</small>
                             </button>
-                            <!-- NEUER TEST-BUTTON -->
+                            <!-- TEST-BUTTON -->
                             <button type="button" class="btn btn-outline-secondary ms-2" id="test-docxtemplater-button">
                                 <i class="bi bi-wrench me-1"></i>
                                 Docxtemplater testen
@@ -183,7 +183,7 @@
 <div class="modal fade" id="zeitraumModal" tabindex="-1" aria-labelledby="zeitraumModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form asp-action="AddZeitraum" method="post">
+            <form asp-action="AddZeitraum" asp-controller="Home" method="post" id="zeitraum-add-form">
                 @Html.AntiForgeryToken()
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="zeitraumModalLabel">
@@ -241,7 +241,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle me-1"></i>Abbrechen
                     </button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="zeitraum-submit-button">
                         <i class="bi bi-plus-circle me-1"></i>Hinzufügen
                     </button>
                 </div>
@@ -252,22 +252,168 @@
 
 @section Scripts {
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Validierung für den Modal-Dialog
-            const modalForm = document.querySelector('#zeitraumModal form');
-            const startInput = document.querySelector('#NeuZeitraum_Start');
-            const endeInput = document.querySelector('#NeuZeitraum_Ende');
+        // Modal-Referenzen
+        let zeitraumModal;
 
-            modalForm.addEventListener('submit', function(e) {
-                const startDate = new Date(startInput.value);
-                const endDate = new Date(endeInput.value);
-
-                if (endDate < startDate) {
-                    e.preventDefault();
-                    alert('Das Enddatum muss nach dem Startdatum liegen.');
-                    return false;
+        // Modal-Schließen-Funktion global definieren
+        window.closeZeitraumModal = function() {
+            try {
+                // Bootstrap 5 API - korrekte Methode zum Schließen des Modals
+                if (zeitraumModal) {
+                    zeitraumModal.hide();
+                } else {
+                    // Fallback für Bootstrap 5
+                    const modalElement = document.getElementById('zeitraumModal');
+                    if (modalElement) {
+                        zeitraumModal = bootstrap.Modal.getInstance(modalElement);
+                        if (zeitraumModal) {
+                            zeitraumModal.hide();
+                        } else {
+                            // jQuery Fallback
+                            $('#zeitraumModal').modal('hide');
+                        }
+                    }
                 }
-            });
+                console.log('Modal erfolgreich geschlossen');
+            } catch (error) {
+                console.error('Fehler beim Schließen des Modals:', error);
+                // Letzter Versuch mit jQuery
+                try {
+                    $('#zeitraumModal').modal('hide');
+                } catch (e) {
+                    console.error('Auch jQuery-Fallback fehlgeschlagen:', e);
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Modal-Element und -Instanz erfassen
+            const modalElement = document.getElementById('zeitraumModal');
+            if (modalElement) {
+                // Modal-Instanz initialisieren
+                zeitraumModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static', // Modal bleibt geöffnet, wenn Hintergrund angeklickt wird
+                    keyboard: false      // Verhindert Schließen durch ESC-Taste
+                });
+
+                // Event-Listener für Modal-Events hinzufügen
+                modalElement.addEventListener('hidden.bs.modal', function () {
+                    console.log('Modal wurde geschlossen - Reset Formular');
+                    // Formular zurücksetzen, wenn das Modal geschlossen wird
+                    const form = document.getElementById('zeitraum-add-form');
+                    if (form) {
+                        form.reset();
+
+                        // Auch den Submit-Button zurücksetzen
+                        const submitBtn = document.getElementById('zeitraum-submit-button');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Hinzufügen';
+                        }
+                    }
+                });
+            }
+
+            // Rest des Codes wie vorher...
+
+            // Verhindern von erneuten Form-Submits nach einem Reload
+            if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
+                console.log('🔄 Seite wurde über Browser-Navigation (zurück/vorwärts) geladen');
+                window.location.reload();
+            }
+
+            // Modal Vorausfüllung mit aktuellem Datum und +1 Monat
+            const openModalButton = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#zeitraumModal"]');
+            if (openModalButton) {
+                openModalButton.addEventListener('click', function() {
+                    // Umschulungsbeginn holen
+                    const umschulungsbeginn = document.getElementById('Umschulungsbeginn').value;
+
+                    // Oder aktuelles Datum falls nicht gesetzt
+                    const startDate = umschulungsbeginn || new Date().toISOString().split('T')[0];
+
+                    // Enddatum berechnen: Startdatum + 1 Monat
+                    const endDateObj = new Date(startDate);
+                    endDateObj.setMonth(endDateObj.getMonth() + 1);
+                    // Sicherstellen, dass das Format YYYY-MM-DD ist
+                    const endDate = endDateObj.toISOString().split('T')[0];
+
+                    // Werte in das Modal setzen
+                    document.getElementById('NeuZeitraum_Start').value = startDate;
+                    document.getElementById('NeuZeitraum_Ende').value = endDate;
+
+                    // Optional: Fokus auf Beschreibungsfeld setzen
+                    setTimeout(() => document.getElementById('NeuZeitraum_Beschreibung').focus(), 500);
+                });
+            }
+
+            // Formular direkt per AJAX absenden für bessere Kontrolle
+            const modalForm = document.getElementById('zeitraum-add-form');
+            if (modalForm) {
+                modalForm.addEventListener('submit', function(e) {
+                    e.preventDefault(); // Standard-Submit verhindern
+
+                    // Datum-Validierung
+                    const startInput = document.getElementById('NeuZeitraum_Start');
+                    const endeInput = document.getElementById('NeuZeitraum_Ende');
+                    const startDate = new Date(startInput.value);
+                    const endDate = new Date(endeInput.value);
+
+                    if (endDate < startDate) {
+                        alert('Das Enddatum muss nach dem Startdatum liegen.');
+                        return false;
+                    }
+
+                    console.log('⬆️ Zeitraum-Formular wird abgesendet...');
+
+                    // Prüfen, ob das Formular gültig ist
+                    if (!this.checkValidity()) {
+                        console.warn('❌ Formular ungültig!');
+                        // Bootstrap-Validierung triggern
+                        this.classList.add('was-validated');
+                        return false;
+                    }
+
+                    // Button-Animation starten
+                    const submitBtn = document.getElementById('zeitraum-submit-button');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Wird hinzugefügt...';
+                    }
+
+                    // Formular per AJAX absenden
+                    const formData = new FormData(this);
+
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        } else {
+                            // Seite neu laden, wenn kein Redirect
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fehler beim Absenden des Formulars:', error);
+
+                        // Reset Button bei Fehler
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Hinzufügen';
+                        }
+
+                        alert('Fehler beim Hinzufügen des Zeitraums: ' + error.message);
+                    });
+
+                    return false;
+                });
+            }
 
             // Generate-Button State Management
             const generateButton = document.getElementById('generate-button');
@@ -286,59 +432,16 @@
             // Debug: Zeige verfügbare Daten
             console.log('🔍 Index.cshtml geladen');
             console.log('📊 Verfügbare Zeiträume:', @Model.Zeitraeume.Count);
-
-            // Debug für Zeitraum-Hinzufügen-Formular
-            const zeitraumForm = document.querySelector('#zeitraumModal form');
-            if (zeitraumForm) {
-                zeitraumForm.addEventListener('submit', function(e) {
-                    console.log('⬆️ Zeitraum-Formular wird abgesendet...');
-                    console.log('Formulardaten:', {
-                        kategorie: document.querySelector('#NeuZeitraum_Kategorie').value,
-                        start: document.querySelector('#NeuZeitraum_Start').value,
-                        ende: document.querySelector('#NeuZeitraum_Ende').value,
-                        beschreibung: document.querySelector('#NeuZeitraum_Beschreibung').value
-                    });
-
-                    // Prüfen, ob das Formular gültig ist
-                    if (!zeitraumForm.checkValidity()) {
-                        console.warn('❌ Formular ungültig!');
-                        e.preventDefault();
-                        // Zeige Validierungsfehler an
-                        Array.from(zeitraumForm.elements).forEach(input => {
-                            if (!input.validity.valid) {
-                                console.warn(`Ungültige Eingabe: ${input.id} - ${input.validationMessage}`);
-                            }
-                        });
-                    }
-                });
-            }
-
-            // Loading-Button-Animation für das Zeitraum-Hinzufügen-Formular verbessern
-            const addZeitraumButton = document.querySelector('#zeitraumModal .modal-footer button[type="submit"]');
-            if (addZeitraumButton) {
-                addZeitraumButton.addEventListener('click', function() {
-                    const form = this.closest('form');
-                    if (form && form.checkValidity()) {
-                        // Visuelles Feedback
-                        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Wird hinzugefügt...';
-                        this.disabled = true;
-
-                        // Nach 10 Sekunden zurücksetzen falls etwas schief geht
-                        setTimeout(() => {
-                            this.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Hinzufügen';
-                            this.disabled = false;
-                        }, 10000);
-                    }
-                });
-            }
         });
     </script>
-    @if (TempData["CloseModal"] != null && Convert.ToBoolean(TempData["CloseModal"]))
+
+    @if (TempData["CloseModal"] != null && TempData["CloseModal"].ToString().ToLower() == "true")
     {
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 console.log('🔒 Modal wird geschlossen (TempData-Signal)');
-                closeZeitraumModal();
+                // Warten, bis DOM vollständig geladen ist
+                setTimeout(() => closeZeitraumModal(), 300);
             });
         </script>
     }
