@@ -1,32 +1,109 @@
-using ASPnet_Automatisierung_Wochennachweise.Models;
+// Models/UmschulungConfig.cs
+using System.ComponentModel.DataAnnotations;
 
-public class UmschulungConfig
+namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
-    public DateTime Umschulungsbeginn { get; set; } = DateTime.Today;
-    public string Nachname { get; set; } = string.Empty;
-    public string Vorname { get; set; } = string.Empty ;
-    public string Klasse { get; set; } = string.Empty;
-    public List<Zeitraum> Zeitraeume { get; set; } = new List<Zeitraum>();
-
-    // Standardmäßig initialisiert mit Werten
-    private Zeitraum? _neuZeitraum;
-    public Zeitraum NeuZeitraum
+    public class UmschulungConfig
     {
-        get
+        [Required(ErrorMessage = "Umschulungsbeginn ist erforderlich")]
+        [DataType(DataType.Date)]
+        [Display(Name = "Beginn der Umschulung")]
+        public DateTime Umschulungsbeginn { get; set; } = DateTime.Today;
+
+        [Required(ErrorMessage = "Nachname ist erforderlich")]
+        [StringLength(100, ErrorMessage = "Nachname darf maximal 100 Zeichen lang sein")]
+        [Display(Name = "Nachname")]
+        public string Nachname { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vorname ist erforderlich")]
+        [StringLength(100, ErrorMessage = "Vorname darf maximal 100 Zeichen lang sein")]
+        [Display(Name = "Vorname")]
+        public string Vorname { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Klasse/Kurs ist erforderlich")]
+        [StringLength(50, ErrorMessage = "Klasse darf maximal 50 Zeichen lang sein")]
+        [Display(Name = "Klasse/Kurs")]
+        public string Klasse { get; set; } = string.Empty;
+
+        public List<Zeitraum> Zeitraeume { get; set; } = new();
+
+        [Display(Name = "Neuer Zeitraum")]
+        public Zeitraum? NeuZeitraum { get; set; } = new Zeitraum();
+
+        // Berechnete Properties
+        public string PersonVollständig => $"{Vorname} {Nachname}".Trim();
+        public int AnzahlPraktikumszeitraeume => Zeitraeume.Count(z => z.Kategorie == "Praktikum");
+        public int AnzahlUmschulungszeitraeume => Zeitraeume.Count(z => z.Kategorie == "Umschulung");
+        public bool HatZeitraeume => Zeitraeume.Any();
+        public DateTime? FruehesterStart => Zeitraeume.Any() ? Zeitraeume.Min(z => z.Start) : null;
+        public DateTime? SpaetestesEnde => Zeitraeume.Any() ? Zeitraeume.Max(z => z.Ende) : null;
+
+        // Validierungsmethoden
+        public bool IsValid()
         {
-            if (_neuZeitraum == null)
-            {
-                _neuZeitraum = new Zeitraum
-                {
-                    Start = Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today,
-                    Ende = (Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today).AddMonths(1)
-                };
-            }
-            return _neuZeitraum;
+            return !string.IsNullOrWhiteSpace(Nachname) &&
+                   !string.IsNullOrWhiteSpace(Vorname) &&
+                   !string.IsNullOrWhiteSpace(Klasse) &&
+                   Umschulungsbeginn != default &&
+                   HatZeitraeume;
         }
-        set { _neuZeitraum = value; }
+
+        public List<string> GetValidationErrors()
+        {
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(Nachname))
+                errors.Add("Nachname ist erforderlich");
+            if (string.IsNullOrWhiteSpace(Vorname))
+                errors.Add("Vorname ist erforderlich");
+            if (string.IsNullOrWhiteSpace(Klasse))
+                errors.Add("Klasse/Kurs ist erforderlich");
+            if (Umschulungsbeginn == default)
+                errors.Add("Umschulungsbeginn ist erforderlich");
+            if (!HatZeitraeume)
+                errors.Add("Mindestens ein Zeitraum ist erforderlich");
+
+            // Zeitraum-Überschneidungen prüfen
+            for (int i = 0; i < Zeitraeume.Count; i++)
+            {
+                for (int j = i + 1; j < Zeitraeume.Count; j++)
+                {
+                    if (Zeitraeume[i].OverlapsWith(Zeitraeume[j]))
+                    {
+                        errors.Add($"Zeitraum-Überschneidung: {Zeitraeume[i].ZeitraumFormatiert} und {Zeitraeume[j].ZeitraumFormatiert}");
+                    }
+                }
+            }
+
+            return errors;
+        }
+
+        public void SortZeitraeume()
+        {
+            Zeitraeume = Zeitraeume.OrderBy(z => z.Start).ToList();
+        }
     }
 }
+
+//// Standardmäßig initialisiert mit Werten
+//private Zeitraum? _neuZeitraum;
+//    public Zeitraum NeuZeitraum
+//    {
+//        get
+//        {
+//            if (_neuZeitraum == null)
+//            {
+//                _neuZeitraum = new Zeitraum
+//                {
+//                    Start = Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today,
+//                    Ende = (Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today).AddMonths(1)
+//                };
+//            }
+//            return _neuZeitraum;
+//        }
+//        set { _neuZeitraum = value; }
+//    }
+//}
 
 
 

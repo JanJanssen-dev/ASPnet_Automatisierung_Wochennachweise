@@ -65,7 +65,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Client-seitige Dokumentenerstellung Libraries -->
+    <!-- Client-seitige Dokumentenerstellung Libraries - DEINE FUNKTIONIERENDEN VERSIONEN -->
     <!-- PizZip für ZIP-Handling -->
     <script src="~/lib/pizzip/pizzip.js"></script>
 
@@ -88,21 +88,32 @@
     {
         <script>
             console.log('🔧 Development Mode aktiv');
-            console.log('📚 Libraries geladen:');
-            console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
-            console.log('- Docxtemplater:', typeof Docxtemplater !== 'undefined' ? '✅' : '❌');
-            console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
 
-            // Erweiterte Debug-Info
-            if (typeof PizZip === 'undefined') {
-                console.warn('⚠️ PizZip nicht geladen - ZIP-Funktionalität nicht verfügbar');
-            }
-                        if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') {
-                console.warn('⚠️ Docxtemplater nicht geladen - Word-Template-Verarbeitung nicht verfügbar');
-            }
-            if (typeof JSZip === 'undefined') {
-                console.warn('⚠️ JSZip nicht geladen - Archiv-Erstellung nicht verfügbar');
-            }
+            // Warten bis alle Scripts geladen sind
+            window.addEventListener('load', function() {
+                console.log('📚 Library-Status nach vollständigem Laden:');
+                console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+                console.log('- Docxtemplater (Global):', typeof Docxtemplater !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+                console.log('- docxtemplater (lowercase):', typeof docxtemplater !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+                console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+
+                // Funktionalitätstest
+                try {
+                    if (typeof PizZip !== 'undefined') {
+                        const testZip = new PizZip();
+                        console.log('✅ PizZip funktionsfähig');
+                    }
+                    if (typeof JSZip !== 'undefined') {
+                        const testJSZip = new JSZip();
+                        console.log('✅ JSZip funktionsfähig');
+                    }
+                    if (typeof docxtemplater !== 'undefined' || typeof Docxtemplater !== 'undefined') {
+                        console.log('✅ Docxtemplater verfügbar');
+                    }
+                } catch (error) {
+                    console.error('❌ Fehler beim Testen der Libraries:', error);
+                }
+            });
         </script>
     }
 </body>

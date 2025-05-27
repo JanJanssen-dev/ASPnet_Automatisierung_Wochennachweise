@@ -6,6 +6,37 @@ class ClientWochennachweisGenerator {
     }
 
     // In der initialize-Methode der ClientWochennachweisGenerator-Klasse
+    //async initialize() {
+    //    try {
+    //        // Template beim Laden der Seite vorab herunterladen
+    //        const response = await fetch('/api/wochennachweis/template');
+    //        if (response.ok) {
+    //            this.template = await response.arrayBuffer();
+    //            console.log('✅ Template erfolgreich geladen');
+    //        } else {
+    //            console.warn('⚠️ Template konnte nicht geladen werden:', await response.text());
+    //        }
+    //    } catch (error) {
+    //        console.error('❌ Fehler beim Vorab-Laden des Templates:', error);
+    //    }
+
+    //    // Verbesserte Bibliotheken-Prüfung
+    //    const missingLibs = [];
+    //    if (typeof PizZip === 'undefined') missingLibs.push('PizZip');
+    //    if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') missingLibs.push('Docxtemplater');
+    //    if (typeof JSZip === 'undefined') missingLibs.push('JSZip');
+
+    //    if (missingLibs.length > 0) {
+    //        const errorMessage = `Folgende benötigte Bibliotheken konnten nicht geladen werden: ${missingLibs.join(', ')}.
+    //        <button class="btn btn-sm btn-primary mt-2" onclick="window.location.reload()">
+    //            <i class="bi bi-arrow-clockwise me-1"></i>Seite neu laden
+    //        </button>`;
+    //        this.showError(errorMessage);
+    //        return false;
+    //    }
+
+    //    return true;
+    //}
     async initialize() {
         try {
             // Template beim Laden der Seite vorab herunterladen
@@ -20,20 +51,41 @@ class ClientWochennachweisGenerator {
             console.error('❌ Fehler beim Vorab-Laden des Templates:', error);
         }
 
-        // Verbesserte Bibliotheken-Prüfung
+        // KORRIGIERTE Bibliotheken-Prüfung
         const missingLibs = [];
-        if (typeof PizZip === 'undefined') missingLibs.push('PizZip');
-        if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') missingLibs.push('Docxtemplater');
-        if (typeof JSZip === 'undefined') missingLibs.push('JSZip');
+
+        // PizZip prüfen (auch bekannt als JSZip in manchen Versionen)
+        if (typeof PizZip === 'undefined' && typeof JSZip === 'undefined') {
+            missingLibs.push('PizZip/JSZip');
+        }
+
+        // Docxtemplater prüfen (verschiedene globale Namen möglich)
+        if (typeof Docxtemplater === 'undefined' &&
+            typeof docxtemplater === 'undefined' &&
+            typeof window.docxtemplater === 'undefined') {
+            missingLibs.push('Docxtemplater');
+        }
+
+        // JSZip für Archive prüfen (separat von PizZip)
+        if (typeof JSZip === 'undefined') {
+            missingLibs.push('JSZip (für Archive)');
+        }
 
         if (missingLibs.length > 0) {
-            const errorMessage = `Folgende benötigte Bibliotheken konnten nicht geladen werden: ${missingLibs.join(', ')}.
-            <button class="btn btn-sm btn-primary mt-2" onclick="window.location.reload()">
-                <i class="bi bi-arrow-clockwise me-1"></i>Seite neu laden
-            </button>`;
+            const errorMessage = `⚠️ Folgende Bibliotheken sind nicht verfügbar: ${missingLibs.join(', ')}.
+        <br><small>Das bedeutet nicht zwingend einen Fehler - prüfen Sie die Funktionalität mit dem Test-Button.</small>
+        <button class="btn btn-sm btn-primary mt-2" onclick="window.location.reload()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Seite neu laden
+        </button>`;
             this.showError(errorMessage);
-            return false;
         }
+
+        // Erweiterte Debug-Info
+        console.log('📚 Bibliothek-Status:');
+        console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+        console.log('- Docxtemplater (Global):', typeof Docxtemplater !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+        console.log('- docxtemplater (lowercase):', typeof docxtemplater !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
+        console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅ Verfügbar' : '❌ Nicht geladen');
 
         return true;
     }

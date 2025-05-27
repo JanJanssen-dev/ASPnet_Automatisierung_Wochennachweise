@@ -58,7 +58,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                             Jahr = montag.Year,
                             Ausbildungsjahr = CalculateAusbildungsjahr(config.Umschulungsbeginn, montag),
                             Wochentage = GenerateWochentage(montag),
-                            IstFeiertag = CheckFeiertage(montag),
+                            FeiertagsDictionary = CheckFeiertage(montag),
 
                             // Legacy Properties für Kompatibilität
                             Dateiname = $"Wochennachweis_Woche_{wochenNummer:00}_{kategorie}.docx",
@@ -66,7 +66,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                             Nachname = config.Nachname ?? string.Empty,
                             Vorname = config.Vorname ?? string.Empty,
                             Klasse = config.Klasse ?? string.Empty,
-                            Tageseintraege = new List<string> { beschreibung }
+                            TageseintraegeAlsStrings = new List<string> { beschreibung }
                         };
 
                         wochennachweise.Add(wochennachweis);
