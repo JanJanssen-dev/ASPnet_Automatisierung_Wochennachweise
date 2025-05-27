@@ -1,289 +1,91 @@
-﻿html {
-    font - size: 14px;
-    position: relative;
-    min - height: 100 %;
-}
+﻿// Site-wide JavaScript functionality
 
-@media(min - width: 768px) {
-  html {
-        font - size: 16px;
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('🌐 Site.js geladen');
+
+    // Bootstrap tooltips initialisieren falls vorhanden
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Auto-dismiss alerts nach 5 Sekunden
+    const alerts = document.querySelectorAll('.alert-dismissible');
+    alerts.forEach(function (alert) {
+        setTimeout(function () {
+            const bsAlert = new bootstrap.Alert(alert);
+            if (bsAlert) {
+                bsAlert.close();
+            }
+        }, 5000);
+    });
+
+    // Form validation enhancement
+    const forms = document.querySelectorAll('form');
+    forms.forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+
+    // Loading states für Buttons
+    const submitButtons = document.querySelectorAll('button[type="submit"]');
+    submitButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            const form = button.closest('form');
+            if (form && form.checkValidity()) {
+                button.classList.add('btn-loading');
+                button.disabled = true;
+
+                // Nach 10 Sekunden wieder aktivieren falls etwas schief geht
+                setTimeout(function () {
+                    button.classList.remove('btn-loading');
+                    button.disabled = false;
+                }, 10000);
+            }
+        });
+    });
+});
+
+// Utility Funktionen
+window.showNotification = function (message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    // Auto-remove nach 5 Sekunden
+    setTimeout(function () {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+};
+
+// Error handling für globale Fehler
+window.addEventListener('error', function (e) {
+    console.error('JavaScript Fehler:', e.error);
+    if (window.location.hostname === 'localhost') {
+        showNotification('JavaScript Fehler: ' + e.message, 'danger');
     }
-}
+});
 
-.btn: focus, .btn: active: focus, .btn - link.nav - link: focus, .form - control: focus, .form - check - input:focus {
-    box - shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-body {
-    margin - bottom: 60px;
-}
-
-/* Client-Generation spezifische Styles */
-#generation - progress {
-    position: sticky;
-    top: 10px;
-    z - index: 1050;
-    border - radius: 8px;
-    box - shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    animation: slideDown 0.3s ease - out;
-}
-
-@keyframes slideDown {
-  from {
-        transform: translateY(-100 %);
-        opacity: 0;
-    }
-  to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.spinner - border - sm {
-    width: 1rem;
-    height: 1rem;
-}
-
-/* Verbessertes Card-Design */
-.card {
-    border: none;
-    border - radius: 12px;
-    transition: box - shadow 0.3s ease;
-}
-
-.card:hover {
-    box - shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.card - header {
-    border - radius: 12px 12px 0 0!important;
-    border - bottom: none;
-    padding: 1.5rem;
-}
-
-.card - body {
-    padding: 1.5rem;
-}
-
-/* Zeiträume-Tabelle */
-.table th {
-    font - weight: 600;
-    font - size: 0.9rem;
-    text - transform: uppercase;
-    letter - spacing: 0.5px;
-    border - bottom: 2px solid #dee2e6;
-}
-
-.table td {
-    vertical - align: middle;
-    padding: 1rem 0.75rem;
-}
-
-.table - hover tbody tr:hover {
-    background - color: rgba(0, 123, 255, 0.05);
-}
-
-/* Badges */
-.badge {
-    font - size: 0.8rem;
-    padding: 0.5rem 0.8rem;
-    border - radius: 20px;
-}
-
-/* Generate Button */
-#generate - button {
-    min - height: 60px;
-    border - radius: 30px;
-    box - shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-#generate - button: hover: not(: disabled) {
-    transform: translateY(-2px);
-    box - shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
-}
-
-#generate - button:disabled {
-    background - color: #6c757d;
-    border - color: #6c757d;
-    box - shadow: none;
-    cursor: not - allowed;
-}
-
-/* Download Buttons Container */
-#download - buttons {
-    background: linear - gradient(135deg, #f8f9fa 0 %, #e9ecef 100 %);
-    border - radius: 12px;
-    padding: 1.5rem;
-    margin - top: 2rem;
-    border: 1px solid #dee2e6;
-}
-
-#download - buttons h5 {
-    color: #495057;
-    margin - bottom: 1rem;
-}
-
-#download - buttons.btn {
-    border - radius: 8px;
-    transition: all 0.2s ease;
-}
-
-#download - buttons.btn:hover {
-    transform: translateY(-1px);
-}
-
-/* Modal Improvements */
-.modal - content {
-    border - radius: 12px;
-    border: none;
-    box - shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.modal - header {
-    border - radius: 12px 12px 0 0;
-    border - bottom: none;
-    padding: 1.5rem;
-}
-
-.modal - footer {
-    border - top: none;
-    padding: 1.5rem;
-}
-
-/* Form Improvements */
-.form - control, .form - select {
-    border - radius: 8px;
-    border: 2px solid #e9ecef;
-    transition: all 0.3s ease;
-}
-
-.form - control: focus, .form - select:focus {
-    border - color: #0d6efd;
-    box - shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
-    transform: translateY(-1px);
-}
-
-.form - label {
-    font - weight: 600;
-    color: #495057;
-    margin - bottom: 0.8rem;
-}
-
-/* Alert Improvements */
-.alert {
-    border - radius: 10px;
-    border: none;
-    padding: 1rem 1.5rem;
-}
-
-.alert - info {
-    background: linear - gradient(135deg, #d1ecf1 0 %, #bee5eb 100 %);
-    color: #0c5460;
-}
-
-.alert - success {
-    background: linear - gradient(135deg, #d4edda 0 %, #c3e6cb 100 %);
-    color: #155724;
-}
-
-.alert - danger {
-    background: linear - gradient(135deg, #f8d7da 0 %, #f5c6cb 100 %);
-    color: #721c24;
-}
-
-/* Navbar Improvements */
-.navbar - brand {
-    font - weight: 700;
-    font - size: 1.5rem;
-}
-
-.nav - link {
-    font - weight: 500;
-    transition: color 0.3s ease;
-}
-
-.nav - link:hover {
-    color: #0d6efd!important;
-}
-
-/* Footer */
-.footer {
-    position: absolute;
-    bottom: 0;
-    width: 100 %;
-    white - space: nowrap;
-    line - height: 60px;
-    background - color: #f8f9fa;
-    border - top: 1px solid #dee2e6;
-}
-
-/* Responsive Improvements */
-@media(max - width: 768px) {
-  .container {
-        padding: 0 15px;
-    }
-
-    #generate - button {
-        width: 100 %;
-        margin - bottom: 1rem;
-    }
-  
-  .card - body {
-        padding: 1rem;
-    }
-  
-  .table - responsive {
-        font - size: 0.9rem;
-    }
-  
-  .modal - dialog {
-        margin: 1rem;
-    }
-}
-
-/* Loading States */
-.btn - loading {
-    position: relative;
-    color: transparent!important;
-}
-
-.btn - loading::after {
-    content: "";
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50 %;
-    left: 50 %;
-    margin - left: -8px;
-    margin - top: -8px;
-    border: 2px solid #ffffff;
-    border - radius: 50 %;
-    border - top - color: transparent;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Success Animation */
-@keyframes checkmark {
-    0 % {
-        transform: scale(0);
-    }
-    50 % {
-        transform: scale(1.2);
-    }
-    100 % {
-        transform: scale(1);
-    }
-}
-
-.success - checkmark {
-    animation: checkmark 0.6s ease -in -out;
+// Debug Funktionen für Development
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    window.debugSite = function () {
+        console.log('🔍 Site Debug Info:');
+        console.log('- Bootstrap:', typeof bootstrap !== 'undefined' ? '✅' : '❌');
+        console.log('- jQuery:', typeof $ !== 'undefined' ? '✅' : '❌');
+        console.log('- Current Page:', window.location.pathname);
+        console.log('- User Agent:', navigator.userAgent);
+    };
 }

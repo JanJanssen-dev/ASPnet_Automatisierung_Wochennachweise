@@ -5,6 +5,7 @@ class ClientWochennachweisGenerator {
         this.isGenerating = false;
     }
 
+    // In der initialize-Methode der ClientWochennachweisGenerator-Klasse
     async initialize() {
         try {
             // Template beim Laden der Seite vorab herunterladen
@@ -13,19 +14,55 @@ class ClientWochennachweisGenerator {
                 this.template = await response.arrayBuffer();
                 console.log('✅ Template erfolgreich geladen');
             } else {
-                console.warn('⚠️ Template konnte nicht vorab geladen werden');
+                console.warn('⚠️ Template konnte nicht geladen werden:', await response.text());
             }
         } catch (error) {
             console.error('❌ Fehler beim Vorab-Laden des Templates:', error);
         }
 
-        // Test-API-Call
+        // Verbesserte Bibliotheken-Prüfung
+        const missingLibs = [];
+        if (typeof PizZip === 'undefined') missingLibs.push('PizZip');
+        if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') missingLibs.push('Docxtemplater');
+        if (typeof JSZip === 'undefined') missingLibs.push('JSZip');
+
+        if (missingLibs.length > 0) {
+            const errorMessage = `Folgende benötigte Bibliotheken konnten nicht geladen werden: ${missingLibs.join(', ')}.
+            <button class="btn btn-sm btn-primary mt-2" onclick="window.location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i>Seite neu laden
+            </button>`;
+            this.showError(errorMessage);
+            return false;
+        }
+
+        return true;
+    }
+
+    async downloadSingleDocument(woche) {
         try {
-            const testResponse = await fetch('/api/wochennachweis/test');
-            const testData = await testResponse.json();
-            console.log('🔧 API Test:', testData);
+            this.showProgress(`📄 Erstelle Dokument für Woche ${woche.nummer}...`);
+
+            // Wenn das Template noch nicht geladen ist
+            if (!this.template) {
+                this.showProgress('📄 Lade Word-Template...');
+                const templateResponse = await fetch('/api/wochennachweis/template');
+                if (!templateResponse.ok) {
+                    throw new Error('Template konnte nicht geladen werden');
+                }
+                this.template = await templateResponse.arrayBuffer();
+            }
+
+            // Dokument erstellen
+            const document = await this.createDocument(woche);
+
+            // Dateinamen erstellen und herunterladen
+            const filename = `Wochennachweis_Woche_${String(woche.nummer).padStart(2, '0')}_${woche.kategorie}.docx`;
+            this.downloadBlob(document, filename);
+
+            this.showSuccess(`✅ Dokument für Woche ${woche.nummer} erstellt!`);
         } catch (error) {
-            console.error('❌ API Test fehlgeschlagen:', error);
+            console.error('❌ Fehler beim Erstellen des Dokuments:', error);
+            this.showError(`Fehler: ${error.message}`);
         }
     }
 

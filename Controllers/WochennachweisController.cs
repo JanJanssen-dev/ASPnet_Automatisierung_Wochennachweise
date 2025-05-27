@@ -8,13 +8,13 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class WochennachweisApiController : ControllerBase
+    public class WochennachweisController : ControllerBase
     {
         private readonly WochennachweisGenerator _generator;
         private readonly FeiertagService _feiertagService;
         private readonly IWebHostEnvironment _environment;
 
-        public WochennachweisApiController(
+        public WochennachweisController(
             WochennachweisGenerator generator,
             FeiertagService feiertagService,
             IWebHostEnvironment environment)

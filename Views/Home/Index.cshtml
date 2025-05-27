@@ -17,11 +17,12 @@
 
             @if (TempData["StatusMessage"] != null)
             {
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle me-2"></i>@TempData["StatusMessage"]
+                <div class="alert alert-@(TempData["StatusMessageType"] ?? "success") alert-dismissible fade show" role="alert">
+                    <i class="bi bi-@(TempData["StatusMessageType"]?.ToString() == "danger" ? "exclamation-triangle" : "check-circle") me-2"></i>@TempData["StatusMessage"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             }
+
 
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-primary text-white">
@@ -246,6 +247,13 @@
 
 @section Scripts {
     <script>
+        // Diese Funktion zum Schließen des Modals nach einem erfolgreichen Submit hinzufügen
+        function closeZeitraumModal() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('zeitraumModal'));
+            if (modal) {
+                modal.hide();
+            }
+        }
         document.addEventListener('DOMContentLoaded', function () {
             // Validierung für den Modal-Dialog
             const modalForm = document.querySelector('#zeitraumModal form');
@@ -280,6 +288,51 @@
             // Debug: Zeige verfügbare Daten
             console.log('🔍 Index.cshtml geladen');
             console.log('📊 Verfügbare Zeiträume:', @Model.Zeitraeume.Count);
+        
+                 // Debug für Zeitraum-Hinzufügen-Formular
+            const zeitraumForm = document.querySelector('#zeitraumModal form');
+            if (zeitraumForm) {
+                zeitraumForm.addEventListener('submit', function(e) {
+                    console.log('⬆️ Zeitraum-Formular wird abgesendet...');
+                    console.log('Formulardaten:', {
+                        kategorie: document.querySelector('#NeuZeitraum_Kategorie').value,
+                        start: document.querySelector('#NeuZeitraum_Start').value,
+                        ende: document.querySelector('#NeuZeitraum_Ende').value,
+                        beschreibung: document.querySelector('#NeuZeitraum_Beschreibung').value
+                    });
+
+                    // Prüfen, ob das Formular gültig ist
+                    if (!zeitraumForm.checkValidity()) {
+                        console.warn('❌ Formular ungültig!');
+                        e.preventDefault();
+                        // Zeige Validierungsfehler an
+                        Array.from(zeitraumForm.elements).forEach(input => {
+                            if (!input.validity.valid) {
+                                console.warn(`Ungültige Eingabe: ${input.id} - ${input.validationMessage}`);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Loading-Button-Animation für das Zeitraum-Hinzufügen-Formular verbessern
+            const addZeitraumButton = document.querySelector('#zeitraumModal .modal-footer button[type="submit"]');
+            if (addZeitraumButton) {
+                addZeitraumButton.addEventListener('click', function() {
+                    const form = this.closest('form');
+                    if (form && form.checkValidity()) {
+                        // Visuelles Feedback
+                        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Wird hinzugefügt...';
+                        this.disabled = true;
+
+                        // Nach 10 Sekunden zurücksetzen falls etwas schief geht
+                        setTimeout(() => {
+                            this.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Hinzufügen';
+                            this.disabled = false;
+                        }, 10000);
+                    }
+                });
+            }
         });
     </script>
 

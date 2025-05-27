@@ -1,15 +1,30 @@
-#nullable disable
+using ASPnet_Automatisierung_Wochennachweise.Models;
 
-namespace ASPnet_Automatisierung_Wochennachweise.Models
+public class UmschulungConfig
 {
-    public class UmschulungConfig
+    public DateTime Umschulungsbeginn { get; set; } = DateTime.Today;
+    public string Nachname { get; set; }
+    public string Vorname { get; set; }
+    public string Klasse { get; set; }
+    public List<Zeitraum> Zeitraeume { get; set; } = new List<Zeitraum>();
+
+    // Standardm‰ﬂig initialisiert mit Werten
+    private Zeitraum _neuZeitraum;
+    public Zeitraum NeuZeitraum
     {
-        public DateTime Umschulungsbeginn { get; set; } = DateTime.Today;
-        public string Nachname { get; set; } = string.Empty;
-        public string Vorname { get; set; } = string.Empty;
-        public string Klasse { get; set; } = string.Empty;
-        public List<Zeitraum> Zeitraeume { get; set; } = new();
-        public Zeitraum NeuZeitraum { get; set; } = new Zeitraum();
+        get
+        {
+            if (_neuZeitraum == null)
+            {
+                _neuZeitraum = new Zeitraum
+                {
+                    Start = Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today,
+                    Ende = (Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today).AddMonths(1)
+                };
+            }
+            return _neuZeitraum;
+        }
+        set { _neuZeitraum = value; }
     }
 }
 

@@ -67,14 +67,10 @@
 
     <!-- Client-seitige Dokumentenerstellung Libraries -->
     <!-- PizZip für ZIP-Handling -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.6/pizzip.min.js"
-            integrity="sha512-JKWbL1dQ842/7psClSB9V7VX1QZ2PAnCz5dedOwfDhE1Fk/EC7av8vTrCaM/F6hh88XJzSztVR1qe2RQ9CYGjw=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="~/lib/pizzip/pizzip.min.js"></script>
 
     <!-- Docxtemplater für Word-Template-Verarbeitung -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.44.0/docxtemplater.min.js"
-            integrity="sha512-J7Vgov2ZrL/BVNa9oHJv4kNDTANdDfE7wJPUP1/MIJQe0wWHKhH0aFBi+LqJ6YHUo7TmGUQV5DwQBPK8uLfrxA=="
-            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="~/lib/docxtemplater/docxtemplater.min.js"></script>
 
     <!-- JSZip für ZIP-Archiv-Erstellung -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
@@ -82,8 +78,8 @@
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Eigene Scripts -->
-    <script src="~/js/wochennachweis-generator.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/wochennachweis-generator.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 
@@ -96,6 +92,17 @@
             console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
             console.log('- Docxtemplater:', typeof Docxtemplater !== 'undefined' ? '✅' : '❌');
             console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
+
+            // Erweiterte Debug-Info
+            if (typeof PizZip === 'undefined') {
+                console.warn('⚠️ PizZip nicht geladen - ZIP-Funktionalität nicht verfügbar');
+            }
+                        if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') {
+                console.warn('⚠️ Docxtemplater nicht geladen - Word-Template-Verarbeitung nicht verfügbar');
+            }
+            if (typeof JSZip === 'undefined') {
+                console.warn('⚠️ JSZip nicht geladen - Archiv-Erstellung nicht verfügbar');
+            }
         </script>
     }
 </body>

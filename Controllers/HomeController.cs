@@ -27,16 +27,34 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         [HttpPost]
         public IActionResult AddZeitraum(UmschulungConfig config)
         {
-            if (config.NeuZeitraum != null && ModelState.IsValid)
+            // Debug-Loggen
+            _logger.LogInformation("AddZeitraum aufgerufen mit NeuZeitraum: {@NeuZeitraum}", config.NeuZeitraum);
+
+            if (config.NeuZeitraum != null)
             {
+                // Validiere Start- und Enddatum
+                if (config.NeuZeitraum.Ende < config.NeuZeitraum.Start)
+                {
+                    TempData["StatusMessage"] = "Fehler: Enddatum muss nach dem Startdatum liegen.";
+                    TempData["StatusMessageType"] = "danger";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (string.IsNullOrWhiteSpace(config.NeuZeitraum.Beschreibung))
+                {
+                    TempData["StatusMessage"] = "Fehler: Beschreibung darf nicht leer sein.";
+                    TempData["StatusMessageType"] = "danger";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 // Existierende Konfiguration aus Session laden
                 var existingConfig = HttpContext.Session.Get<UmschulungConfig>("UmschulungConfig") ?? new UmschulungConfig();
 
                 // Grunddaten aktualisieren
                 existingConfig.Umschulungsbeginn = config.Umschulungsbeginn;
-                existingConfig.Nachname = config.Nachname;
-                existingConfig.Vorname = config.Vorname;
-                existingConfig.Klasse = config.Klasse;
+                existingConfig.Nachname = config.Nachname ?? existingConfig.Nachname;
+                existingConfig.Vorname = config.Vorname ?? existingConfig.Vorname;
+                existingConfig.Klasse = config.Klasse ?? existingConfig.Klasse;
 
                 // Neuen Zeitraum hinzufügen
                 existingConfig.Zeitraeume.Add(new Zeitraum
@@ -51,6 +69,12 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 HttpContext.Session.Set("UmschulungConfig", existingConfig);
 
                 TempData["StatusMessage"] = "Zeitraum erfolgreich hinzugefügt!";
+                TempData["StatusMessageType"] = "success";
+            }
+            else
+            {
+                TempData["StatusMessage"] = "Fehler: Keine Zeitraumdaten übermittelt.";
+                TempData["StatusMessageType"] = "danger";
             }
 
             return RedirectToAction(nameof(Index));
