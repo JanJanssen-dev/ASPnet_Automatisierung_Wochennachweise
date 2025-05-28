@@ -1,6 +1,7 @@
 ﻿@model UmschulungConfig
 @{
     ViewData["Title"] = "Wochennachweis-Generator";
+    var debugEnabled = Context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<DebugOptions>>().Value.EnableDebug;
 }
 
 <div class="container">
@@ -9,6 +10,10 @@
             <h1 class="my-4 text-center">
                 <i class="bi bi-file-earmark-word text-primary me-2"></i>
                 Wochennachweis-Generator
+                @if (debugEnabled)
+                {
+                    <small class="badge bg-warning text-dark ms-2">🔧 DEBUG</small>
+                }
             </h1>
             <p class="text-center text-muted mb-4">
                 Automatische Erstellung von Wochennachweisen für Umschulung und Praktikum
@@ -23,6 +28,65 @@
                 </div>
             }
 
+            <!-- ================================ -->
+            <!-- 🔧 DEBUG-PANEL (nur wenn Debug aktiv) -->
+            <!-- ================================ -->
+            @if (debugEnabled)
+            {
+                <div class="card mb-4 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0">
+                            <i class="bi bi-wrench me-2"></i>Debug-Panel
+                            <button class="btn btn-sm btn-outline-dark float-end" type="button" data-bs-toggle="collapse" data-bs-target="#debugPanel">
+                                Toggle
+                            </button>
+                        </h6>
+                    </div>
+                    <div class="collapse" id="debugPanel">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>🧪 Form-Tests</h6>
+                                    <form action="/Home/DebugSubmit" method="post" id="debug-form" class="mb-2">
+                                        <button type="button" class="btn btn-sm btn-success w-100" onclick="document.getElementById('debug-form').submit();">
+                                            ✅ Debug Submit
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-info w-100" onclick="debugFormSubmit('wochennachweis-form')">
+                                        🔧 Debug Generate
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>📊 Session-Info</h6>
+                                    <small class="text-muted">
+                                        Zeiträume: @Model.Zeitraeume.Count<br>
+                                        Nachname: @(string.IsNullOrEmpty(Model.Nachname) ? "leer" : Model.Nachname)<br>
+                                        Debug aktiv: ✅<br>
+                                        Zeiträume.Any(): @Model.Zeitraeume.Any()<br>
+                                        Tabelle ID: zeitraeume-table
+                                    </small>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>🔧 Tools</h6>
+                                    <button type="button" class="btn btn-sm btn-secondary w-100 mb-1" onclick="console.clear();">
+                                        🧹 Console leeren
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary w-100 mb-1" onclick="window.location.reload();">
+                                        🔄 Seite neu laden
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-info w-100" onclick="debugDOMElements();">
+                                        🔍 DOM debuggen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- ================================ -->
+            <!-- 🔧 HAUPTFORMULAR - BEHOBEN -->
+            <!-- ================================ -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
@@ -30,7 +94,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="Generate" method="post" id="wochennachweis-form">
+                    <form action="/Home/Generate" method="post" id="wochennachweis-form">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -73,6 +137,9 @@
                             </div>
                         </div>
 
+                        <!-- ================================ -->
+                        <!-- 🔧 ZEITRÄUME-TABELLE - BEHOBEN -->
+                        <!-- ================================ -->
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center bg-light">
                                 <h5 class="mb-0">
@@ -92,7 +159,16 @@
                                 }
                                 else
                                 {
+                                    <!-- 🔧 DELETE-FORMS HIER INNERHALB DES ELSE-BLOCKS -->
+                                    @for (int i = 0; i < Model.Zeitraeume.Count; i++)
+                                    {
+                                        <form action="/Home/DeleteZeitraum" method="post" class="delete-zeitraum-form" id="delete-form-@i" style="display: none;">
+                                            <input type="hidden" name="index" value="@i" />
+                                        </form>
+                                    }
+
                                     <div class="table-responsive">
+
                                         <table class="table table-striped table-hover" id="zeitraeume-table">
                                             <thead class="table-dark">
                                                 <tr>
@@ -116,13 +192,12 @@
                                                         <td>@Model.Zeitraeume[i].Ende.ToString("dd.MM.yyyy")</td>
                                                         <td>@Model.Zeitraeume[i].Beschreibung</td>
                                                         <td>
-                                                            <form asp-action="DeleteZeitraum" method="post" class="d-inline">
-                                                                <input type="hidden" name="index" value="@i" />
-                                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                                        onclick="return confirm('Zeitraum wirklich löschen?')">
-                                                                    <i class="bi bi-trash"></i>
-                                                                </button>
-                                                            </form>
+                                                            <!-- 🔧 NUR BUTTON - FORM IST OBEN -->
+                                                            <button type="button" class="btn btn-danger btn-sm delete-zeitraum-btn"
+                                                                    data-zeitraum-index="@i"
+                                                                    onclick="deleteZeitraum(@i)">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 }
@@ -149,13 +224,18 @@
                             </div>
                         </div>
 
+                        <!-- ================================ -->
+                        <!-- 🔧 GENERATE-BUTTON - BEHOBEN -->
+                        <!-- ================================ -->
                         <div class="text-center mb-4">
-                            <button type="submit" class="btn btn-success btn-lg px-5"
-                                    disabled="@(!Model.Zeitraeume.Any())" id="generate-button">
+                            <button type="button" class="btn btn-success btn-lg px-5" id="generate-button"
+                                    disabled="@(!Model.Zeitraeume.Any())"
+                                    onclick="document.getElementById('wochennachweis-form').submit();">
                                 <i class="bi bi-file-earmark-word me-2"></i>
                                 Wochennachweise generieren
                                 <br><small class="fw-normal">Client-seitige Erstellung</small>
                             </button>
+
                             <!-- TEST-BUTTON -->
                             <button type="button" class="btn btn-outline-secondary ms-2" id="test-docxtemplater-button">
                                 <i class="bi bi-wrench me-1"></i>
@@ -179,69 +259,72 @@
     </div>
 </div>
 
-<!-- Modal für neuen Zeitraum -->
+<!-- ================================ -->
+<!-- 🔧 MODAL - KOMPLETT BEHOBEN -->
+<!-- ================================ -->
 <div class="modal fade" id="zeitraumModal" tabindex="-1" aria-labelledby="zeitraumModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form asp-action="AddZeitraum" asp-controller="Home" method="post" id="zeitraum-add-form">
-                @Html.AntiForgeryToken()
+            <form action="/Home/AddZeitraum" method="post" id="modal-form">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="zeitraumModalLabel">
                         <i class="bi bi-plus-circle me-2"></i>Neuen Zeitraum hinzufügen
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
                 <div class="modal-body">
-                    <!-- Hidden fields für bestehende Daten -->
-                    <input type="hidden" asp-for="Umschulungsbeginn" />
-                    <input type="hidden" asp-for="Nachname" />
-                    <input type="hidden" asp-for="Vorname" />
-                    <input type="hidden" asp-for="Klasse" />
+                    <!-- Hidden fields für Grunddaten -->
+                    <input type="hidden" name="Umschulungsbeginn" id="hidden-umschulungsbeginn" />
+                    <input type="hidden" name="Nachname" id="hidden-nachname" />
+                    <input type="hidden" name="Vorname" id="hidden-vorname" />
+                    <input type="hidden" name="Klasse" id="hidden-klasse" />
 
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Kategorie" class="form-label">
-                            <i class="bi bi-tag me-1"></i>Kategorie
+                        <label for="NeuZeitraum_Kategorie" class="form-label">
+                            <i class="bi bi-tag me-1"></i>Kategorie *
                         </label>
-                        <select asp-for="NeuZeitraum.Kategorie" class="form-select">
-                            <option value="Umschulung">
-                                <i class="bi bi-mortarboard"></i> Umschulung
-                            </option>
-                            <option value="Praktikum">
-                                <i class="bi bi-building"></i> Praktikum
-                            </option>
+                        <select name="NeuZeitraum.Kategorie" id="NeuZeitraum_Kategorie" class="form-select" required>
+                            <option value="">Bitte wählen...</option>
+                            <option value="Umschulung">Umschulung</option>
+                            <option value="Praktikum">Praktikum</option>
                         </select>
                     </div>
+
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Start" class="form-label">
-                            <i class="bi bi-calendar-event me-1"></i>Startdatum
+                        <label for="NeuZeitraum_Start" class="form-label">
+                            <i class="bi bi-calendar-event me-1"></i>Startdatum *
                         </label>
-                        <input asp-for="NeuZeitraum.Start" type="date" class="form-control" required />
-                        <span asp-validation-for="NeuZeitraum.Start" class="text-danger"></span>
+                        <input type="date" name="NeuZeitraum.Start" id="NeuZeitraum_Start" class="form-control" required />
                     </div>
+
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Ende" class="form-label">
-                            <i class="bi bi-calendar-x me-1"></i>Enddatum
+                        <label for="NeuZeitraum_Ende" class="form-label">
+                            <i class="bi bi-calendar-x me-1"></i>Enddatum *
                         </label>
-                        <input asp-for="NeuZeitraum.Ende" type="date" class="form-control" required />
-                        <span asp-validation-for="NeuZeitraum.Ende" class="text-danger"></span>
+                        <input type="date" name="NeuZeitraum.Ende" id="NeuZeitraum_Ende" class="form-control" required />
                     </div>
+
                     <div class="mb-3">
-                        <label asp-for="NeuZeitraum.Beschreibung" class="form-label">
-                            <i class="bi bi-card-text me-1"></i>Beschreibung
+                        <label for="NeuZeitraum_Beschreibung" class="form-label">
+                            <i class="bi bi-card-text me-1"></i>Beschreibung *
                         </label>
-                        <input asp-for="NeuZeitraum.Beschreibung" class="form-control" required
+                        <input type="text" name="NeuZeitraum.Beschreibung" id="NeuZeitraum_Beschreibung"
+                               class="form-control" required maxlength="500"
                                placeholder="z.B. Modul HTML/CSS, Praktikum bei Firma XYZ" />
-                        <span asp-validation-for="NeuZeitraum.Beschreibung" class="text-danger"></span>
                         <div class="form-text">
                             Diese Beschreibung wird in allen Wochennachweisen dieses Zeitraums verwendet.
                         </div>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle me-1"></i>Abbrechen
                     </button>
-                    <button type="submit" class="btn btn-primary" id="zeitraum-submit-button">
+                    <!-- 🔧 SUBMIT-BUTTON - BEHOBEN -->
+                    <button type="button" class="btn btn-primary" id="modal-submit-btn"
+                            onclick="submitModalForm()">
                         <i class="bi bi-plus-circle me-1"></i>Hinzufügen
                     </button>
                 </div>
@@ -251,167 +334,274 @@
 </div>
 
 @section Scripts {
+    <!-- ================================ -->
+    <!-- 🔧 JAVASCRIPT - KOMPLETT NEU & SAUBER -->
+    <!-- ================================ -->
     <script>
-        // Modal-Referenzen
-        let zeitraumModal;
+        // ================================
+        // 🔧 GLOBALE VARIABLEN
+        // ================================
+        var DEBUG_ENABLED = @(debugEnabled.ToString().ToLower());
+        var ZEITRAEUME_COUNT = @Model.Zeitraeume.Count;
+        var zeitraumModal;
 
-        // Modal-Schließen-Funktion global definieren
-        window.closeZeitraumModal = function() {
-            try {
-                if (zeitraumModal) {
-                    zeitraumModal.hide();
-                } else {
-                    const modalElement = document.getElementById('zeitraumModal');
-                    if (modalElement) {
-                        zeitraumModal = bootstrap.Modal.getInstance(modalElement);
+        // ================================
+        // 🔧 DEBUG-LOGGING
+        // ================================
+        function debugLog(message, category) {
+            if (DEBUG_ENABLED) {
+                console.log('🔧 [' + (category || 'DEBUG') + '] ' + message);
+            }
+        }
+
+        // ================================
+        // 🔧 DOM READY EVENT
+        // ================================
+        document.addEventListener('DOMContentLoaded', function () {
+            debugLog('INDEX.CSHTML DOM GELADEN', 'INIT');
+
+            initializeModal();
+            initializeDeleteButtons();
+
+            debugLog('Verfügbare Zeiträume: ' + ZEITRAEUME_COUNT, 'INIT');
+        });
+
+        // ================================
+        // 🔧 MODAL INITIALISIERUNG
+        // ================================
+        function initializeModal() {
+            var modalElement = document.getElementById('zeitraumModal');
+            if (modalElement) {
+                zeitraumModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                debugLog('Modal initialisiert', 'MODAL');
+            }
+
+            // Modal Open Event
+            var modalButton = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#zeitraumModal"]');
+            if (modalButton) {
+                modalButton.addEventListener('click', function() {
+                    debugLog('Modal wird geöffnet', 'MODAL');
+                    prefillModalData();
+                });
+            }
+
+            // Modal Reset Event
+            if (modalElement) {
+                modalElement.addEventListener('hidden.bs.modal', function () {
+                    debugLog('Modal wird zurückgesetzt', 'MODAL');
+                    resetModalForm();
+                });
+            }
+
+            // Auto-Close Modal
+        @if (TempData["CloseModal"] != null && TempData["CloseModal"].ToString().ToLower() == "true")
+        {
+            <text>
+                    debugLog('Modal wird automatisch geschlossen', 'MODAL');
+                    setTimeout(function() {
                         if (zeitraumModal) {
                             zeitraumModal.hide();
                         }
-                    }
-                }
-                console.log('Modal erfolgreich geschlossen');
-            } catch (error) {
-                console.error('Fehler beim Schließen des Modals:', error);
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Modal-Element und -Instanz erfassen
-            const modalElement = document.getElementById('zeitraumModal');
-            if (modalElement) {
-                zeitraumModal = new bootstrap.Modal(modalElement);
-
-                modalElement.addEventListener('hidden.bs.modal', function () {
-                    console.log('Modal wurde geschlossen - Reset Formular');
-                    const form = document.getElementById('zeitraum-add-form');
-                    if (form) {
-                        form.reset();
-                        form.classList.remove('was-validated');
-
-                        const submitBtn = document.getElementById('zeitraum-submit-button');
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Hinzufügen';
-                        }
-                    }
-                });
-            }
-
-            // Modal Vorausfüllung
-            const openModalButton = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#zeitraumModal"]');
-            if (openModalButton) {
-                openModalButton.addEventListener('click', function() {
-                    const umschulungsbeginn = document.getElementById('Umschulungsbeginn').value;
-                    const startDate = umschulungsbeginn || new Date().toISOString().split('T')[0];
-
-                    const endDateObj = new Date(startDate);
-                    endDateObj.setMonth(endDateObj.getMonth() + 1);
-                    const endDate = endDateObj.toISOString().split('T')[0];
-
-                    document.getElementById('NeuZeitraum_Start').value = startDate;
-                    document.getElementById('NeuZeitraum_Ende').value = endDate;
-
-                    setTimeout(() => {
-                        const beschreibungField = document.getElementById('NeuZeitraum_Beschreibung');
-                        if (beschreibungField) {
-                            beschreibungField.focus();
-                        }
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
                     }, 500);
-                });
+            </text>
+        }
+        }
+
+        // ================================
+        // 🔧 DELETE-BUTTONS INITIALISIERUNG - VEREINFACHT
+        // ================================
+        function initializeDeleteButtons() {
+            var deleteButtons = document.querySelectorAll('.delete-zeitraum-btn');
+            debugLog('Delete-Buttons gefunden: ' + deleteButtons.length, 'DELETE');
+
+            // Buttons sind jetzt mit onclick="deleteZeitraum(index)" - keine Event-Listener nötig
+            debugLog('Delete-Buttons verwenden onclick-Attribute', 'DELETE');
+        }
+
+        // ================================
+        // 🔧 MODAL HELPER FUNCTIONS
+        // ================================
+        function prefillModalData() {
+            // Grunddaten sammeln
+            var grunddaten = {
+                umschulungsbeginn: document.getElementById('Umschulungsbeginn').value || '',
+                nachname: document.getElementById('Nachname').value || '',
+                vorname: document.getElementById('Vorname').value || '',
+                klasse: document.getElementById('Klasse').value || ''
+            };
+
+            // Hidden Fields setzen
+            document.getElementById('hidden-umschulungsbeginn').value = grunddaten.umschulungsbeginn;
+            document.getElementById('hidden-nachname').value = grunddaten.nachname;
+            document.getElementById('hidden-vorname').value = grunddaten.vorname;
+            document.getElementById('hidden-klasse').value = grunddaten.klasse;
+
+            // Datum vorausfüllen
+            var heute = new Date().toISOString().split('T')[0];
+            var startDate = grunddaten.umschulungsbeginn || heute;
+            var endDateObj = new Date(startDate);
+            endDateObj.setMonth(endDateObj.getMonth() + 1);
+            var endDate = endDateObj.toISOString().split('T')[0];
+
+            document.getElementById('NeuZeitraum_Start').value = startDate;
+            document.getElementById('NeuZeitraum_Ende').value = endDate;
+
+            debugLog('Modal-Daten gesetzt: ' + JSON.stringify(grunddaten), 'MODAL');
+        }
+
+        function resetModalForm() {
+            var modalForm = document.getElementById('modal-form');
+            if (modalForm) {
+                modalForm.reset();
             }
 
-            // KORRIGIERTES Formular-Handling - Verwende normales Submit statt AJAX
-            const modalForm = document.getElementById('zeitraum-add-form');
-            if (modalForm) {
-                modalForm.addEventListener('submit', function(e) {
-                    console.log('⬆️ Zeitraum-Formular wird abgesendet...');
+            var submitBtn = document.getElementById('modal-submit-btn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Hinzufügen';
+            }
+        }
 
-                    // Datum-Validierung
-                    const startInput = document.getElementById('NeuZeitraum_Start');
-                    const endeInput = document.getElementById('NeuZeitraum_Ende');
+        // ================================
+        // 🔧 DELETE FUNCTION - SUPER EINFACH
+        // ================================
+        function deleteZeitraum(index) {
+            debugLog('deleteZeitraum() aufgerufen für Index: ' + index, 'DELETE');
 
-                    if (startInput && endeInput) {
-                        const startDate = new Date(startInput.value);
-                        const endDate = new Date(endeInput.value);
+            if (confirm('Zeitraum wirklich löschen?')) {
+                var formId = 'delete-form-' + index;
+                var form = document.getElementById(formId);
 
-                        if (endDate < startDate) {
-                            e.preventDefault();
-                            alert('Das Enddatum muss nach dem Startdatum liegen.');
-                            return false;
-                        }
+                debugLog('Delete-Form ID: ' + formId, 'DELETE');
+                debugLog('Delete-Form gefunden: ' + !!form, 'DELETE');
+
+                if (form) {
+                    debugLog('Delete-Form wird abgesendet', 'DELETE');
+                    form.submit();
+                } else {
+                    console.error('❌ Delete-Form nicht gefunden: ' + formId);
+                    alert('Fehler: Form nicht gefunden!');
+                }
+            }
+        }
+        function submitModalForm() {
+            debugLog('submitModalForm() aufgerufen', 'MODAL');
+
+            var form = document.getElementById('modal-form');
+            var submitBtn = document.getElementById('modal-submit-btn');
+
+            if (!form) {
+                debugLog('Modal-Form nicht gefunden', 'ERROR');
+                return;
+            }
+
+            // Validierung
+            var kategorie = document.getElementById('NeuZeitraum_Kategorie').value;
+            var start = document.getElementById('NeuZeitraum_Start').value;
+            var ende = document.getElementById('NeuZeitraum_Ende').value;
+            var beschreibung = document.getElementById('NeuZeitraum_Beschreibung').value;
+
+            if (!kategorie || !start || !ende || !beschreibung) {
+                alert('Bitte alle Felder ausfüllen!');
+                return;
+            }
+
+            if (new Date(ende) < new Date(start)) {
+                alert('Das Enddatum muss nach dem Startdatum liegen!');
+                return;
+            }
+
+            // Button deaktivieren
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Wird hinzugefügt...';
+            }
+
+            debugLog('Modal-Form wird abgesendet', 'MODAL');
+            form.submit();
+        }
+
+        // ================================
+        // 🔧 DEBUG FUNCTIONS (nur wenn Debug aktiv)
+        // ================================
+        @if (debugEnabled)
+        {
+            <text>
+                // Debug-Funktionen
+                window.testModalSubmit = function() {
+                    console.log('🧪 Test Modal Submit');
+                    if (zeitraumModal) {
+                        zeitraumModal.show();
+                        setTimeout(function() {
+                            document.getElementById('NeuZeitraum_Kategorie').value = 'Umschulung';
+                            document.getElementById('NeuZeitraum_Start').value = '2024-01-01';
+                            document.getElementById('NeuZeitraum_Ende').value = '2024-01-31';
+                            document.getElementById('NeuZeitraum_Beschreibung').value = 'Test-Zeitraum';
+                            console.log('🧪 Testdaten gesetzt');
+                        }, 500);
                     }
+                };
 
-                    // Formular-Validierung
-                    if (!this.checkValidity()) {
-                        e.preventDefault();
-                        console.warn('❌ Formular ungültig!');
-                        this.classList.add('was-validated');
-                        return false;
-                    }
+                window.testDeleteButton = function(index) {
+                    console.log('🧪 Test Delete Button: ' + index);
+                    deleteZeitraum(index);
+                };
 
-                    // Button-Animation starten
-                    const submitBtn = document.getElementById('zeitraum-submit-button');
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Wird hinzugefügt...';
-                    }
+                window.debugDOMElements = function() {
+                    console.log('🔍 DOM DEBUG REPORT:');
+                    console.log('=====================================');
 
-                    // Hauptformular-Daten in Hidden Fields kopieren
-                    const mainFormData = {
-                        umschulungsbeginn: document.getElementById('Umschulungsbeginn')?.value || '',
-                        nachname: document.getElementById('Nachname')?.value || '',
-                        vorname: document.getElementById('Vorname')?.value || '',
-                        klasse: document.getElementById('Klasse')?.value || ''
-                    };
-
-                    // Hidden Fields aktualisieren
-                    const hiddenFields = [
-                        { id: 'Umschulungsbeginn', value: mainFormData.umschulungsbeginn },
-                        { id: 'Nachname', value: mainFormData.nachname },
-                        { id: 'Vorname', value: mainFormData.vorname },
-                        { id: 'Klasse', value: mainFormData.klasse }
-                    ];
-
-                    hiddenFields.forEach(field => {
-                        const hiddenInput = modalForm.querySelector(`input[name="${field.id}"]`);
-                        if (hiddenInput) {
-                            hiddenInput.value = field.value;
-                        }
+                    console.log('📋 Alle Forms:');
+                    document.querySelectorAll('form').forEach(function(form, i) {
+                        console.log('  ' + i + ': ID="' + form.id + '" Class="' + form.className + '" Action="' + form.action + '"');
                     });
 
-                    console.log('✅ Normale Form-Submission wird durchgeführt');
-                    // Normales Submit lassen - KEIN preventDefault() mehr
-                    return true;
-                });
-            }
+                    console.log('📋 Delete-Forms (außerhalb Tabelle):');
+                    var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
+                    console.log('  Delete-Forms gefunden: ' + deleteForms.length);
+                    deleteForms.forEach(function(form, i) {
+                        console.log('  Form ' + i + ': ID="' + form.id + '" Action="' + form.action + '"');
+                    });
 
-            // Generate-Button State Management
-            function updateGenerateButton() {
-                const generateButton = document.getElementById('generate-button');
-                const zeitraeumTable = document.getElementById('zeitraeume-table');
-                const hasZeitraeume = zeitraeumTable && zeitraeumTable.querySelector('tbody tr');
+                    console.log('📋 Zeiträume-Tabelle:');
+                    var table = document.getElementById('zeitraeume-table');
+                    console.log('  Tabelle vorhanden: ' + !!table);
+                    if (table) {
+                        var rows = table.querySelectorAll('tbody tr');
+                        console.log('  Zeilen in tbody: ' + rows.length);
 
-                if (generateButton) {
-                    generateButton.disabled = !hasZeitraeume;
-                }
-            }
+                        rows.forEach(function(row, i) {
+                            var deleteBtn = row.querySelector('.delete-zeitraum-btn');
+                            var onclick = deleteBtn ? deleteBtn.getAttribute('onclick') : null;
+                            console.log('  Zeile ' + i + ': Button=' + !!deleteBtn + ' onclick="' + onclick + '"');
+                        });
+                    }
 
-            updateGenerateButton();
+                    console.log('📋 Delete-Buttons:');
+                    var deleteButtons = document.querySelectorAll('.delete-zeitraum-btn');
+                    console.log('  Delete-Buttons: ' + deleteButtons.length);
+                    deleteButtons.forEach(function(btn, i) {
+                        console.log('  Button ' + i + ': data-index="' + btn.getAttribute('data-zeitraum-index') + '" onclick="' + btn.getAttribute('onclick') + '"');
+                    });
 
-            console.log('🔍 Index.cshtml geladen');
-            console.log('📊 Verfügbare Zeiträume:', @Model.Zeitraeume.Count);
-        });
+                    console.log('=====================================');
+                };
+
+                // Debug-Info
+                console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
+                console.log('🔧 Debug-Funktionen verfügbar:');
+                console.log('- testModalSubmit() - Modal mit Testdaten öffnen');
+                console.log('- testDeleteButton(index) - Delete-Button testen');
+                console.log('- debugDOMElements() - DOM-Struktur debuggen');
+            </text>
+        }
     </script>
-
-    @if (TempData["CloseModal"] != null && TempData["CloseModal"].ToString().ToLower() == "true")
-    {
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                console.log('🔒 Modal wird geschlossen (TempData-Signal)');
-                setTimeout(() => closeZeitraumModal(), 300);
-            });
-        </script>
-    }
 
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
