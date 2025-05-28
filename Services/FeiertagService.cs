@@ -52,14 +52,11 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             try
             {
-                
                 // date.nager.at REST API - Deutschland
                 string baseUrl = "https://date.nager.at/api/v3/publicholidays/";
                 string url = baseUrl + jahr.ToString() + "/DE";
 
                 _logger?.LogDebug("Rufe Feiertage-API auf: {Url}", url);
-
-               
 
                 var response = await _httpClient.GetAsync(url);
 
@@ -70,7 +67,34 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var holidays = JsonSerializer.Deserialize<List<PublicHoliday>>(json);
+
+                // Robustere Deserialisierungsoptionen verwenden
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                    AllowTrailingCommas = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip,
+                };
+
+                // Deserialisierung mit Try-Catch umgeben
+                List<PublicHoliday> holidays;
+                try
+                {
+                    holidays = JsonSerializer.Deserialize<List<PublicHoliday>>(json, options);
+
+                    // Falls etwas mit der Deserialisierung nicht stimmt, Debug-Informationen loggen
+                    if (holidays == null || holidays.Count == 0)
+                    {
+                        _logger?.LogWarning("Keine Feiertage deserialisiert. JSON: {Json}", json.Substring(0, Math.Min(200, json.Length)));
+                    }
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger?.LogError(jsonEx, "JSON Deserialisierungsfehler. JSON: {Json}",
+                        json.Substring(0, Math.Min(200, json.Length)));
+                    return new List<DateTime>();
+                }
 
                 var feiertage = new List<DateTime>();
 
@@ -78,9 +102,14 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 {
                     foreach (var holiday in holidays)
                     {
-                        if (DateTime.TryParse(holiday.Date, out DateTime date))
+                        if (!string.IsNullOrEmpty(holiday.Date) &&
+                            DateTime.TryParse(holiday.Date, out DateTime date))
                         {
                             feiertage.Add(date.Date);
+                        }
+                        else
+                        {
+                            _logger?.LogWarning("Ungültiges Datumsformat: {Date}", holiday.Date);
                         }
                     }
                 }
@@ -253,8 +282,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         public string CountryCode { get; set; }
         public bool Fixed { get; set; }
         public bool Global { get; set; }
-        public List<string> Counties { get; set; }
-        public int LaunchYear { get; set; }
-        public List<string> Types { get; set; }
+        public List<string> Counties { get; set; } = new List<string>(); // Defaultwert setzen
+        public int? LaunchYear { get; set; } // Nullable machen
+        public List<string> Types { get; set; } = new List<string>(); // Defaultwert setzen
     }
+
 }

@@ -167,7 +167,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             for (int i = 0; i < 5; i++)
             {
                 var tag = montag.AddDays(i);
-                feiertage[tag] = alleFeiertage.Contains(tag.Date);
+                feiertage[tag] = alleFeiertage.Any(f => f.Date == tag.Date);
             }
 
             return feiertage;
@@ -183,13 +183,14 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             try
             {
                 var feiertage = _feiertagService?.GetFeiertage(datum.Year) ?? new List<DateTime>();
-                return feiertage.Contains(datum.Date);
+                return feiertage.Any(f => f.Date == datum.Date);
             }
             catch
             {
                 return false;
             }
         }
+
 
         private string GetArbeitsfreierTagText(DateTime datum)
         {
@@ -199,18 +200,27 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             try
             {
                 var feiertage = _feiertagService?.GetFeiertage(datum.Year) ?? new List<DateTime>();
-                if (feiertage.Contains(datum.Date))
+
+                // Debug-Ausgabe
+                System.Diagnostics.Debug.WriteLine($"Prüfe Feiertag für {datum:dd.MM.yyyy}");
+                foreach (var f in feiertage)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - Feiertag: {f:dd.MM.yyyy}");
+                }
+
+                if (feiertage.Any(f => f.Date == datum.Date))
                 {
                     var feiertagName = _feiertagService?.GetFeiertagName(datum) ?? "Feiertag";
-                    return string.IsNullOrEmpty(feiertagName) ? "Feiertag" : feiertagName;
+                    return $"FT ({(string.IsNullOrEmpty(feiertagName) ? "Feiertag" : feiertagName)})";
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore errors
+                System.Diagnostics.Debug.WriteLine($"Fehler bei Feiertagsprüfung: {ex.Message}");
             }
 
             return string.Empty;
         }
+
     }
 }
