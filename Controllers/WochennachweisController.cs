@@ -153,5 +153,90 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 templateExists = System.IO.File.Exists(Path.Combine(_environment.WebRootPath, "templates", "Wochennachweis_Vorlage.docx"))
             });
         }
+        // KORRIGIERTE VERSION - Fügen Sie diese Methoden zu Ihrem bestehenden WochennachweisController.cs hinzu:
+        // (Die using-Statements und Klassendeklaration sind bereits vorhanden!)
+
+        [HttpGet("current-config")]
+        public ActionResult<UmschulungConfig> GetCurrentConfig()
+        {
+            try
+            {
+                var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig");
+
+                if (config == null)
+                {
+                    return NotFound(new { error = "Keine Konfiguration in der Session gefunden" });
+                }
+
+                return Ok(config);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    error = "Fehler beim Laden der Konfiguration",
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("generate-from-session")]
+        public ActionResult<WochennachweisClientData> GenerateFromSession()
+        {
+            try
+            {
+                var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig");
+
+                if (config == null)
+                {
+                    return BadRequest(new { error = "Keine Konfiguration in der Session gefunden. Bitte gehen Sie zurück zur Startseite und definieren Sie Ihre Zeiträume neu." });
+                }
+
+                // Validierung
+                if (string.IsNullOrEmpty(config.Nachname) || string.IsNullOrEmpty(config.Vorname))
+                {
+                    return BadRequest(new { error = "Unvollständige Konfiguration: Name fehlt" });
+                }
+
+                if (config.Zeitraeume == null || !config.Zeitraeume.Any())
+                {
+                    return BadRequest(new { error = "Keine Zeiträume definiert. Bitte gehen Sie zurück zur Startseite und fügen Sie Zeiträume hinzu." });
+                }
+
+                // Daten generieren
+                var wochen = _generator.GenerateWochennachweiseData(config);
+
+                var clientData = new WochennachweisClientData
+                {
+                    Nachname = config.Nachname,
+                    Vorname = config.Vorname,
+                    Klasse = config.Klasse,
+                    // 🔥 WICHTIGER FIX: Property heißt "Wochen" (groß), nicht "wochen" (klein)
+                    Wochen = wochen.Select(w => new WochenData
+                    {
+                        Nummer = w.Nummer,
+                        Kategorie = w.Kategorie,
+                        Montag = w.Montag,
+                        Samstag = w.Samstag,
+                        Beschreibungen = w.Beschreibungen,
+                        Jahr = w.Jahr,
+                        Ausbildungsjahr = w.Ausbildungsjahr,
+                        TemplateData = _generator.GenerateTemplateData(w, config)
+                    }).ToList()
+                };
+
+                return Ok(clientData);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    error = "Fehler bei der Datengenerierung aus Session",
+                    message = ex.Message,
+                    details = "Prüfen Sie, ob alle Zeiträume korrekt definiert sind und gehen Sie gegebenenfalls zurück zur Startseite."
+                });
+            }
+        }
+
     }
 }
