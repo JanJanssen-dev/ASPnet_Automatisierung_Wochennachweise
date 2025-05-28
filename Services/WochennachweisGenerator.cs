@@ -129,13 +129,14 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
 
         private int CalculateAusbildungsjahr(DateTime beginn, DateTime aktuelleDatum)
         {
-            var jahre = aktuelleDatum.Year - beginn.Year;
-            if (aktuelleDatum.Month < beginn.Month ||
-                (aktuelleDatum.Month == beginn.Month && aktuelleDatum.Day < beginn.Day))
-            {
-                jahre--;
-            }
-            return Math.Max(1, jahre + 1); // Mindestens Jahr 1
+            //var jahre = aktuelleDatum.Year - beginn.Year;
+            //if (aktuelleDatum.Month < beginn.Month ||
+            //    (aktuelleDatum.Month == beginn.Month && aktuelleDatum.Day < beginn.Day))
+            //{
+            //    jahre--;
+            //}
+            //return Math.Max(1, jahre + 1); // Mindestens Jahr 1
+            return aktuelleDatum.Year;
         }
 
         private List<DateTime> GenerateWochentage(DateTime montag)
