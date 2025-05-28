@@ -149,7 +149,7 @@
 
 @section Scripts {
     <script>
-                // 🔥 KORRIGIERTES JAVASCRIPT FÜR RESULT-VIEW - Property-Namen-Fix
+                // 🔥 JAVASCRIPT FÜR RESULT-VIEW
 
         class ResultPageGenerator {
             constructor() {
@@ -238,7 +238,7 @@
                         await this.loadTemplate();
                     }
 
-                    // 🔥 KORRIGIERT: Flexible Property-Zugriffe für verschiedene Formate
+                    // 🔥 Flexible Property-Zugriffe für verschiedene Formate
                     const wochenArray = this.getWochenArray();
 
                     if (!wochenArray || wochenArray.length === 0) {
@@ -272,7 +272,7 @@
                 }
             }
 
-            // 🔥 NEUE HILFSMETHODE: Flexible Zugriffe auf Wochen-Array
+            // 🔥 HILFSMETHODE: Flexible Zugriffe auf Wochen-Array
             getWochenArray() {
                 if (!this.wochennachweisData) {
                     return null;
@@ -322,7 +322,7 @@
                     this.wochennachweisData = await response.json();
                     console.log('📊 Wochendaten aus Session geladen:', this.wochennachweisData);
 
-                    // 🔥 KORRIGIERT: Flexible Property-Zugriffe mit Debug-Info
+                    // 🔥 Flexible Property-Zugriffe mit Debug-Info
                     const wochenArray = this.getWochenArray();
 
                     console.log('🔍 Debug - Verfügbare Properties:', Object.keys(this.wochennachweisData));

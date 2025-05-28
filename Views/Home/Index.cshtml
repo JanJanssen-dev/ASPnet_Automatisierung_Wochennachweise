@@ -102,7 +102,7 @@
             }
 
             <!-- ================================ -->
-            <!-- 🔧 HAUPTFORMULAR - BEHOBEN -->
+            <!-- 🔧 HAUPTFORMULAR -->
             <!-- ================================ -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-primary text-white">
@@ -155,7 +155,7 @@
                         </div>
 
                         <!-- ================================ -->
-                        <!-- 🔧 ZEITRÄUME-TABELLE - OHNE DELETE-FORMS HIER -->
+                        <!-- 🔧 ZEITRÄUME-TABELLE -->
                         <!-- ================================ -->
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center bg-light">
@@ -177,7 +177,7 @@
                                 }
                                 else
                                 {
-                                    <!-- 🚨 DELETE-FORMS ENTFERNT - SIND JETZT OBEN VOR DEM CONTAINER -->
+                                   
 
                                     <div class="table-responsive">
                                         <table class="table table-striped table-hover" id="zeitraeume-table">
@@ -203,7 +203,7 @@
                                                         <td>@Model.Zeitraeume[i].Ende.ToString("dd.MM.yyyy")</td>
                                                         <td>@Model.Zeitraeume[i].Beschreibung</td>
                                                         <td>
-                                                            <!-- 🚨 BUTTON ZEIGT AUF FORM AUSSERHALB DER TABELLE -->
+                                                            
                                                             <button type="button" class="btn btn-danger btn-sm delete-zeitraum-btn"
                                                                     data-zeitraum-index="@i"
                                                                     onclick="deleteZeitraum(@i)"
@@ -237,7 +237,7 @@
                         </div>
 
                         <!-- ================================ -->
-                        <!-- 🔧 GENERATE-BUTTON - BEHOBEN -->
+                        <!-- 🔧 GENERATE-BUTTON -->
                         <!-- ================================ -->
                         <div class="text-center mb-4">
                             <button type="button" class="btn btn-success btn-lg px-5" id="generate-button"
@@ -248,11 +248,14 @@
                                 <br><small class="fw-normal">Client-seitige Erstellung</small>
                             </button>
 
-                            <!-- TEST-BUTTON -->
-                            <button type="button" class="btn btn-outline-secondary ms-2" id="test-docxtemplater-button">
-                                <i class="bi bi-wrench me-1"></i>
-                                Docxtemplater testen
-                            </button>
+                            <!-- TEST-BUTTON - nur im Debug-Modus anzeigen -->
+                            @if (debugEnabled)
+                            {
+                                <button type="button" class="btn btn-outline-secondary ms-2" id="test-docxtemplater-button">
+                                    <i class="bi bi-wrench me-1"></i>
+                                    Docxtemplater testen
+                                </button>
+                            }
 
                             @if (!Model.Zeitraeume.Any())
                             {
@@ -272,7 +275,7 @@
 </div>
 
 <!-- ================================ -->
-<!-- 🔧 MODAL - KOMPLETT BEHOBEN -->
+<!-- 🔧 MODAL -->
 <!-- ================================ -->
 <div class="modal fade" id="zeitraumModal" tabindex="-1" aria-labelledby="zeitraumModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -334,7 +337,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle me-1"></i>Abbrechen
                     </button>
-                    <!-- 🔧 SUBMIT-BUTTON - BEHOBEN -->
+                    <!-- 🔧 SUBMIT-BUTTON -->
                     <button type="button" class="btn btn-primary" id="modal-submit-btn"
                             onclick="submitModalForm()">
                         <i class="bi bi-plus-circle me-1"></i>Hinzufügen
@@ -347,7 +350,7 @@
 
 @section Scripts {
     <!-- ================================ -->
-    <!-- 🔧 JAVASCRIPT - KOMPLETT NEU & SAUBER -->
+    <!-- 🔧 JAVASCRIPT - -->
     <!-- ================================ -->
     <script>
         // ================================
@@ -435,13 +438,13 @@
         }
 
         // ================================
-        // 🔧 DELETE-BUTTONS INITIALISIERUNG - VEREINFACHT
+        // 🔧 DELETE-BUTTONS
         // ================================
         function initializeDeleteButtons() {
             var deleteButtons = document.querySelectorAll('.delete-zeitraum-btn');
             debugLog('Delete-Buttons gefunden: ' + deleteButtons.length, 'DELETE');
 
-            // Buttons sind jetzt mit onclick="deleteZeitraum(index)" - keine Event-Listener nötig
+            
             debugLog('Delete-Buttons verwenden onclick-Attribute', 'DELETE');
         }
 
@@ -490,7 +493,7 @@
         }
 
         // ================================
-        // 🔧 DELETE FUNCTION - VERBESSERT MIT DEBUGGING
+        // 🔧 DELETE FUNCTION
         // ================================
         function deleteZeitraum(index) {
             debugLog('deleteZeitraum() aufgerufen für Index: ' + index, 'DELETE');

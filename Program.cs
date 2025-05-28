@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // 🔧 ZENTRALES DEBUG-SYSTEM
 // ================================
 // Hier einmal auf true setzen = Debug überall aktiv
-const bool DEBUG_MODE = true;
+const bool DEBUG_MODE = false;
 
 // Debug-Konfiguration für Visual Studio Debug Console
 if (DEBUG_MODE)
