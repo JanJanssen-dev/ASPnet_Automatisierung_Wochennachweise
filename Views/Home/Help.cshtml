@@ -1,0 +1,394 @@
+﻿@{
+    ViewData["Title"] = "So funktioniert's";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="my-4 text-center">
+                <i class="bi bi-question-circle text-primary me-2"></i>
+                So funktioniert's
+            </h1>
+
+            <!-- ================================ -->
+            <!-- 🔧 SCHNELLSTART -->
+            <!-- ================================ -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-rocket me-2"></i>Schnellstart
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-light rounded p-3 h-100">
+                                <i class="bi bi-1-circle-fill text-primary" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2">Grunddaten eingeben</h6>
+                                <small class="text-muted">Name, Klasse und Umschulungsbeginn</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-light rounded p-3 h-100">
+                                <i class="bi bi-2-circle-fill text-primary" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2">Zeiträume definieren</h6>
+                                <small class="text-muted">Alle Umschulungs- und Praktikumsphasen</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-light rounded p-3 h-100">
+                                <i class="bi bi-3-circle-fill text-primary" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2">Generieren klicken</h6>
+                                <small class="text-muted">Alle Dokumente werden erstellt</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-light rounded p-3 h-100">
+                                <i class="bi bi-4-circle-fill text-primary" style="font-size: 2rem;"></i>
+                                <h6 class="mt-2">ZIP herunterladen</h6>
+                                <small class="text-muted">Alle Nachweise in Ordnern sortiert</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================ -->
+            <!-- 🔧 WICHTIGE HINWEISE -->
+            <!-- ================================ -->
+            <div class="card mb-4 shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Wichtige Hinweise
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>Vollständige Zeiträume erforderlich</h6>
+                        <p class="mb-2">
+                            <strong>Es werden nur Wochennachweise für die definierten Zeiträume generiert!</strong>
+                        </p>
+                        <ul class="mb-0">
+                            <li><strong>Gut:</strong> "HTML/CSS Grundlagen - Modul 1"</li>
+                            <li><strong>Gut:</strong> "Praktikum bei Firma ABC - Webentwicklung"</li>
+                            <li><strong>Schlecht:</strong> "Umschulung" (zu unspezifisch)</li>
+                        </ul>
+                    </div>
+
+                    <h6 class="mt-4"><i class="bi bi-file-earmark-word me-2"></i>3. Dokumente generieren</h6>
+                    <ul>
+                        <li>Klicken Sie auf "Wochennachweise generieren"</li>
+                        <li>Das System berechnet automatisch alle Wochen</li>
+                        <li>Wochennummern werden seit Umschulungsbeginn gezählt</li>
+                        <li>Alle Dokumente werden client-seitig erstellt (keine Server-Übertragung)</li>
+                    </ul>
+
+                    <h6 class="mt-4"><i class="bi bi-download me-2"></i>4. Download und Verwendung</h6>
+                    <ul>
+                        <li><strong>ZIP-Download:</strong> Alle Dokumente in Ordnern sortiert</li>
+                        <li><strong>Ordnerstruktur:</strong> Praktikum/ und Umschulung/ Unterordner</li>
+                        <li><strong>Dateinamen:</strong> "Wochennachweis_NR_Monat_Kategorie.docx"</li>
+                        <li><strong>Einzeldownload:</strong> Jedes Dokument separat verfügbar</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ================================ -->
+            <!-- 🔧 TECHNISCHE DETAILS -->
+            <!-- ================================ -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cpu me-2"></i>Technische Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-shield-check me-2"></i>Datenschutz</h6>
+                            <ul>
+                                <li>Alle Daten bleiben in Ihrem Browser</li>
+                                <li>Keine Übertragung an externe Server</li>
+                                <li>Dokumente werden lokal erstellt</li>
+                                <li>Session-Daten werden temporär gespeichert</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-calendar-week me-2"></i>Wochenberechnung</h6>
+                            <ul>
+                                <li>Wochen beginnen immer montags</li>
+                                <li>Wochennummern seit Umschulungsbeginn</li>
+                                <li>DATUM = Montag der Woche</li>
+                                <li>UDATUM = Samstag der Woche</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-file-earmark-word me-2"></i>Dokumentformat</h6>
+                            <ul>
+                                <li>Microsoft Word .docx Format</li>
+                                <li>Vorgefertigte Vorlagen werden gefüllt</li>
+                                <li>Alle Felder automatisch ausgefüllt</li>
+                                <li>Ready-to-print Dokumente</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-folder me-2"></i>Dateiorganisation</h6>
+                            <ul>
+                                <li>ZIP-Archiv mit Unterordnern</li>
+                                <li>Praktikum/ für alle Praktikumsnachweise</li>
+                                <li>Umschulung/ für alle Umschulungsnachweise</li>
+                                <li>README.txt mit Übersicht</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================ -->
+            <!-- 🔧 HÄUFIGE PROBLEME -->
+            <!-- ================================ -->
+            <div class="card mb-4 shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bug me-2"></i>Häufige Probleme & Lösungen
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="problemAccordion">
+
+                        <!-- Problem 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="problem1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                    <i class="bi bi-question-circle me-2"></i>Es werden zu wenige Wochennachweise generiert
+                                </button>
+                            </h2>
+                            <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Ursache:</strong> Nicht alle Zeiträume wurden definiert.</p>
+                                    <p><strong>Lösung:</strong></p>
+                                    <ul>
+                                        <li>Prüfen Sie alle Lücken zwischen Umschulungsbeginn und heute</li>
+                                        <li>Fügen Sie fehlende Zeiträume als "Umschulung" hinzu</li>
+                                        <li>Achten Sie auf überlappungsfreie Zeiträume</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Problem 2 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="problem2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                    <i class="bi bi-question-circle me-2"></i>Wochennummern stimmen nicht
+                                </button>
+                            </h2>
+                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Erklärung:</strong> Wochennummern werden seit dem Umschulungsbeginn gezählt.</p>
+                                    <p><strong>Beispiel:</strong></p>
+                                    <ul>
+                                        <li>Umschulungsbeginn: 01.01.2024</li>
+                                        <li>Praktikum ab: 01.06.2024</li>
+                                        <li>Erste Praktikumswoche = Woche 22 (da 22 Wochen seit Start)</li>
+                                    </ul>
+                                    <p>Das ist korrekt und entspricht dem gewünschten Verhalten.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Problem 3 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="problem3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                    <i class="bi bi-question-circle me-2"></i>Download funktioniert nicht
+                                </button>
+                            </h2>
+                            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Mögliche Ursachen:</strong></p>
+                                    <ul>
+                                        <li>Browser blockiert Downloads</li>
+                                        <li>JavaScript ist deaktiviert</li>
+                                        <li>Popup-Blocker ist aktiv</li>
+                                    </ul>
+                                    <p><strong>Lösungen:</strong></p>
+                                    <ul>
+                                        <li>Downloads in Browser-Einstellungen erlauben</li>
+                                        <li>Seite neu laden und erneut versuchen</li>
+                                        <li>Anderer Browser (Chrome, Firefox, Edge)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Problem 4 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="problem4">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                                    <i class="bi bi-question-circle me-2"></i>Dokumente sind leer oder fehlerhaft
+                                </button>
+                            </h2>
+                            <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Mögliche Ursachen:</strong></p>
+                                    <ul>
+                                        <li>Template-Datei ist beschädigt</li>
+                                        <li>Browser-Cache-Probleme</li>
+                                        <li>Inkkompatible Word-Version</li>
+                                    </ul>
+                                    <p><strong>Lösungen:</strong></p>
+                                    <ul>
+                                        <li>Browser-Cache leeren (Strg+F5)</li>
+                                        <li>Seite in privatem/inkognito Modus öffnen</li>
+                                        <li>Mit Microsoft Word 2016 oder neuer öffnen</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================ -->
+            <!-- 🔧 SUPPORT -->
+            <!-- ================================ -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-headset me-2"></i>Weitere Hilfe
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-shield-check me-2"></i>Datenschutz</h6>
+                            <p>
+                                Detaillierte Informationen zum Datenschutz und zur Datenverarbeitung finden Sie in unserer
+                                <a asp-action="Privacy" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-shield-check me-1"></i>Datenschutzerklärung
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-house me-2"></i>Zurück zum Generator</h6>
+                            <p>
+                                Bereit zum Erstellen Ihrer Wochennachweise?
+                                <a asp-action="Index" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-arrow-left me-1"></i>Zum Generator
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📚 Hilfe-Seite geladen');
+
+            // Accordion-Events für bessere UX
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const icon = this.querySelector('.bi');
+                    if (this.classList.contains('collapsed')) {
+                        // Wird geöffnet
+                        setTimeout(() => {
+                            if (!this.classList.contains('collapsed')) {
+                                icon.classList.remove('bi-question-circle');
+                                icon.classList.add('bi-question-circle-fill');
+                            }
+                        }, 300);
+                    } else {
+                        // Wird geschlossen
+                        icon.classList.remove('bi-question-circle-fill');
+                        icon.classList.add('bi-question-circle');
+                    }
+                });
+            });
+        });
+    </script>
+}mb-0">
+<li>Lücken zwischen Zeiträumen werden übersprungen</li>
+<li>Definieren Sie alle Zeiträume vom Umschulungsbeginn bis zum Ende</li>
+<li>Auch "normale" Umschulungswochen müssen als Zeitraum eingetragen werden</li>
+                        </ul>
+                    </div>
+
+<div class="alert alert-warning">
+    <h6><i class="bi bi-calendar-x me-2"></i>Beispiel für Lücken</h6>
+    <p class="mb-2">
+        <strong>Problematisch:</strong>
+    </p>
+    <ul class="mb-2">
+        <li>Umschulungsbeginn: 01.01.2024</li>
+        <li>Erster Zeitraum: 01.06.2024 - 30.06.2024 (Praktikum)</li>
+        <li><span class="text-danger">❌ Lücke: 01.01. - 31.05. (5 Monate ohne Zeitraum!)</span></li>
+    </ul>
+    <p class="mb-2">
+        <strong>Richtig:</strong>
+    </p>
+    <ul class="mb-0">
+        <li>Zeitraum 1: 01.01.2024 - 31.05.2024 (Umschulung)</li>
+        <li>Zeitraum 2: 01.06.2024 - 30.06.2024 (Praktikum)</li>
+        <li><span class="text-success">✅ Alle Wochen abgedeckt</span></li>
+    </ul>
+</div>
+                </div>
+            </div>
+
+<!-- ================================ -->
+<!-- 🔧 DETAILLIERTE ANLEITUNG -->
+<!-- ================================ -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-list-ol me-2"></i>Detaillierte Anleitung
+        </h5>
+    </div>
+    <div class="card-body">
+
+        <h6><i class="bi bi-person-circle me-2"></i>1. Grunddaten eingeben</h6>
+        <ul>
+            <li><strong>Umschulungsbeginn:</strong> Das tatsächliche Startdatum Ihrer Umschulung</li>
+            <li><strong>Name:</strong> Vor- und Nachname (wird in allen Dokumenten verwendet)</li>
+            <li><strong>Klasse/Kurs:</strong> z.B. "FIAE-2023-A" oder "Umschulung 2024"</li>
+        </ul>
+
+        <h6 class="mt-4"><i class="bi bi-calendar3 me-2"></i>2. Zeiträume definieren</h6>
+        <p>Fügen Sie <strong>alle</strong> Zeiträume Ihrer Umschulung hinzu:</p>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h6><span class="badge bg-primary">Umschulung</span></h6>
+                <ul>
+                    <li>Reguläre Unterrichtszeiten</li>
+                    <li>Prüfungsvorbereitungen</li>
+                    <li>Projektphasen</li>
+                    <li>Alle Zeiten in der Bildungseinrichtung</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6><span class="badge bg-success">Praktikum</span></h6>
+                <ul>
+                    <li>Betriebspraktika</li>
+                    <li>Praktische Phasen</li>
+                    <li>Arbeitsplätze in Unternehmen</li>
+                    <li>Externe Projekte</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="alert alert-light mt-3">
+            <h6><i class="bi bi-lightbulb me-2"></i>Tipp: Beschreibungen</h6>
+            <p class="mb-2">Die Beschreibung erscheint in allen Wochennachweisen des Zeitraums:</p>
+            <ul class="

@@ -26,7 +26,7 @@
             </h1>
             <p class="text-center text-muted mb-4">
                 Automatische Erstellung von Wochennachweisen für Umschulung und Praktikum
-                <br><small><i class="bi bi-cpu me-1"></i>Client-seitige Generierung - Keine Server-Last</small>
+                <br><small><i class="bi bi-cpu me-1"></i>Alle Daten bleiben in Ihrem Browser - keine Server-Übertragung</small>
             </p>
 
             @if (TempData["StatusMessage"] != null)
@@ -155,13 +155,20 @@
                         </div>
 
                         <!-- ================================ -->
-                        <!-- 🔧 ZEITRÄUME-TABELLE -->
+                        <!-- 🔧 ZEITRÄUME-TABELLE MIT TOOLTIP -->
                         <!-- ================================ -->
                         <div class="card mb-4">
                             <div class="card-header d-flex justify-content-between align-items-center bg-light">
                                 <h5 class="mb-0">
                                     <i class="bi bi-calendar3 me-2"></i>Definierte Zeiträume
                                     <span class="badge bg-secondary">@Model.Zeitraeume.Count</span>
+                                    <i class="bi bi-question-circle text-primary ms-2"
+                                       id="zeitraeume-help"
+                                       style="cursor: help;"
+                                       data-bs-toggle="tooltip"
+                                       data-bs-placement="top"
+                                       data-bs-html="true"
+                                       title="<strong>Wichtiger Hinweis:</strong><br>Es werden nur Wochennachweise für die hier definierten Zeiträume generiert.<br><br><strong>Lücken zwischen Zeiträumen werden übersprungen!</strong><br><br>Stellen Sie sicher, dass alle gewünschten Wochen vom Umschulungsbeginn bis zum Ende abgedeckt sind."></i>
                                 </h5>
                                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#zeitraumModal">
                                     <i class="bi bi-plus-circle me-1"></i>Neuen Zeitraum hinzufügen
@@ -173,12 +180,13 @@
                                     <div class="alert alert-info">
                                         <i class="bi bi-info-circle me-2"></i>
                                         Es wurden noch keine Zeiträume definiert. Bitte fügen Sie mindestens einen Zeitraum hinzu.
+                                        <br><small class="text-muted">
+                                            <strong>Tipp:</strong> Definieren Sie alle Zeiträume von Ihrem Umschulungsbeginn bis zum Ende, damit keine Wochen fehlen.
+                                        </small>
                                     </div>
                                 }
                                 else
                                 {
-                                   
-
                                     <div class="table-responsive">
                                         <table class="table table-striped table-hover" id="zeitraeume-table">
                                             <thead class="table-dark">
@@ -203,7 +211,6 @@
                                                         <td>@Model.Zeitraeume[i].Ende.ToString("dd.MM.yyyy")</td>
                                                         <td>@Model.Zeitraeume[i].Beschreibung</td>
                                                         <td>
-                                                            
                                                             <button type="button" class="btn btn-danger btn-sm delete-zeitraum-btn"
                                                                     data-zeitraum-index="@i"
                                                                     onclick="deleteZeitraum(@i)"
@@ -377,18 +384,32 @@
 
             initializeModal();
             initializeDeleteButtons();
+            initializeTooltips();
 
             debugLog('Verfügbare Zeiträume: ' + ZEITRAEUME_COUNT, 'INIT');
-            
+
             // 🚨 SOFORTIGE DELETE-FORMS-PRÜFUNG
             var deleteFormCount = document.querySelectorAll('.delete-zeitraum-form').length;
             debugLog('Delete-Forms sofort gefunden: ' + deleteFormCount, 'INIT');
-            
+
             for (var i = 0; i < ZEITRAEUME_COUNT; i++) {
                 var form = document.getElementById('delete-form-' + i);
                 debugLog('Form delete-form-' + i + ': ' + (form ? 'GEFUNDEN' : 'FEHLT'), 'INIT');
             }
         });
+
+        // ================================
+        // 🔧 TOOLTIPS INITIALISIERUNG
+        // ================================
+        function initializeTooltips() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                    html: true
+                });
+            });
+            debugLog('Tooltips initialisiert: ' + tooltipList.length, 'TOOLTIP');
+        }
 
         // ================================
         // 🔧 MODAL INITIALISIERUNG
@@ -424,15 +445,15 @@
         @if (TempData["CloseModal"] != null && TempData["CloseModal"].ToString().ToLower() == "true")
         {
             <text>
-                    debugLog('Modal wird automatisch geschlossen', 'MODAL');
-                    setTimeout(function() {
-                        if (zeitraumModal) {
-                            zeitraumModal.hide();
-                        }
+                        debugLog('Modal wird automatisch geschlossen', 'MODAL');
                         setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
-                    }, 500);
+                            if (zeitraumModal) {
+                                zeitraumModal.hide();
+                            }
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1000);
+                        }, 500);
             </text>
         }
         }
@@ -443,8 +464,6 @@
         function initializeDeleteButtons() {
             var deleteButtons = document.querySelectorAll('.delete-zeitraum-btn');
             debugLog('Delete-Buttons gefunden: ' + deleteButtons.length, 'DELETE');
-
-            
             debugLog('Delete-Buttons verwenden onclick-Attribute', 'DELETE');
         }
 
@@ -511,33 +530,33 @@
                 }
             } else {
                 console.error('❌ Delete-Form nicht gefunden: ' + formId);
-                
+
                 // 🚨 DETAILLIERTES DEBUGGING
                 debugLog('Verfügbare Delete-Forms:', 'ERROR');
                 var allDeleteForms = document.querySelectorAll('.delete-zeitraum-form');
                 allDeleteForms.forEach(function(f, i) {
                     debugLog('  Form ' + i + ': ID=' + f.id + ' Action=' + f.action, 'ERROR');
                 });
-                
+
                 // FALLBACK: Erstelle dynamische Form
                 debugLog('Erstelle Fallback-Form', 'DELETE');
                 if (confirm('Form nicht gefunden - trotzdem versuchen zu löschen?')) {
                     var fallbackForm = document.createElement('form');
                     fallbackForm.method = 'POST';
                     fallbackForm.action = '/Home/DeleteZeitraum';
-                    
+
                     var indexInput = document.createElement('input');
                     indexInput.type = 'hidden';
                     indexInput.name = 'index';
                     indexInput.value = index;
-                    
+
                     fallbackForm.appendChild(indexInput);
                     document.body.appendChild(fallbackForm);
                     fallbackForm.submit();
                 }
             }
         }
-        
+
         function submitModalForm() {
             debugLog('submitModalForm() aufgerufen', 'MODAL');
 
@@ -556,12 +575,28 @@
             var beschreibung = document.getElementById('NeuZeitraum_Beschreibung').value;
 
             if (!kategorie || !start || !ende || !beschreibung) {
-                alert('Bitte alle Felder ausfüllen!');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Fehlende Angaben',
+                        text: 'Bitte füllen Sie alle Felder aus!'
+                    });
+                } else {
+                    alert('Bitte alle Felder ausfüllen!');
+                }
                 return;
             }
 
             if (new Date(ende) < new Date(start)) {
-                alert('Das Enddatum muss nach dem Startdatum liegen!');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ungültiger Zeitraum',
+                        text: 'Das Enddatum muss nach dem Startdatum liegen!'
+                    });
+                } else {
+                    alert('Das Enddatum muss nach dem Startdatum liegen!');
+                }
                 return;
             }
 
@@ -581,76 +616,76 @@
         @if (debugEnabled)
         {
             <text>
-                // Debug-Funktionen
-                window.testModalSubmit = function() {
-                    console.log('🧪 Test Modal Submit');
-                    if (zeitraumModal) {
-                        zeitraumModal.show();
-                        setTimeout(function() {
-                            document.getElementById('NeuZeitraum_Kategorie').value = 'Umschulung';
-                            document.getElementById('NeuZeitraum_Start').value = '2024-01-01';
-                            document.getElementById('NeuZeitraum_Ende').value = '2024-01-31';
-                            document.getElementById('NeuZeitraum_Beschreibung').value = 'Test-Zeitraum';
-                            console.log('🧪 Testdaten gesetzt');
-                        }, 500);
-                    }
-                };
+                    // Debug-Funktionen
+                    window.testModalSubmit = function() {
+                        console.log('🧪 Test Modal Submit');
+                        if (zeitraumModal) {
+                            zeitraumModal.show();
+                            setTimeout(function() {
+                                document.getElementById('NeuZeitraum_Kategorie').value = 'Umschulung';
+                                document.getElementById('NeuZeitraum_Start').value = '2024-01-01';
+                                document.getElementById('NeuZeitraum_Ende').value = '2024-01-31';
+                                document.getElementById('NeuZeitraum_Beschreibung').value = 'Test-Zeitraum';
+                                console.log('🧪 Testdaten gesetzt');
+                            }, 500);
+                        }
+                    };
 
-                window.testDeleteButton = function(index) {
-                    console.log('🧪 Test Delete Button: ' + index);
-                    deleteZeitraum(index);
-                };
+                    window.testDeleteButton = function(index) {
+                        console.log('🧪 Test Delete Button: ' + index);
+                        deleteZeitraum(index);
+                    };
 
-                window.debugDOMElements = function() {
-                    console.log('🔍 DOM DEBUG REPORT:');
-                    console.log('=====================================');
+                    window.debugDOMElements = function() {
+                        console.log('🔍 DOM DEBUG REPORT:');
+                        console.log('=====================================');
 
-                    console.log('📋 Alle Forms:');
-                    document.querySelectorAll('form').forEach(function(form, i) {
-                        console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '", elements: ' + form.elements.length + '}');
-                    });
-
-                    console.log('📋 Delete-Forms (außerhalb Tabelle):');
-                    var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
-                    console.log('  Delete-Forms gefunden: ' + deleteForms.length);
-                    deleteForms.forEach(function(form, i) {
-                        console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
-                    });
-
-                    console.log('📋 Zeiträume-Tabelle:');
-                    var table = document.getElementById('zeitraeume-table');
-                    console.log('  Tabelle vorhanden: ' + !!table);
-                    if (table) {
-                        var rows = table.querySelectorAll('tbody tr');
-                        console.log('  Zeilen in tbody: ' + rows.length);
-
-                        rows.forEach(function(row, i) {
-                            var deleteBtn = row.querySelector('.delete-zeitraum-btn');
-                            var onclick = deleteBtn ? deleteBtn.getAttribute('onclick') : null;
-                            console.log('  Zeile ' + (i+1) + ': {button: ' + !!deleteBtn + ', onclick: "' + onclick + '"}');
+                        console.log('📋 Alle Forms:');
+                        document.querySelectorAll('form').forEach(function(form, i) {
+                            console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '", elements: ' + form.elements.length + '}');
                         });
-                    }
 
-                    console.log('📋 Delete-Buttons:');
-                    var deleteButtons = document.querySelectorAll('.delete-zeitraum-btn');
-                    console.log('  Delete-Buttons: ' + deleteButtons.length);
-                    deleteButtons.forEach(function(btn, i) {
-                        console.log('  Button ' + (i+1) + ': {data-index: "' + btn.getAttribute('data-zeitraum-index') + '", onclick: "' + btn.getAttribute('onclick') + '"}');
-                    });
+                        console.log('📋 Delete-Forms (außerhalb Tabelle):');
+                        var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
+                        console.log('  Delete-Forms gefunden: ' + deleteForms.length);
+                        deleteForms.forEach(function(form, i) {
+                            console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
+                        });
 
-                    console.log('=====================================');
-                };
+                        console.log('📋 Zeiträume-Tabelle:');
+                        var table = document.getElementById('zeitraeume-table');
+                        console.log('  Tabelle vorhanden: ' + !!table);
+                        if (table) {
+                            var rows = table.querySelectorAll('tbody tr');
+                            console.log('  Zeilen in tbody: ' + rows.length);
 
-                // Debug-Info
-                console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
-                console.log('🔧 Debug-Funktionen verfügbar:');
-                console.log('- testModalSubmit() - Modal mit Testdaten öffnen');
-                console.log('- testDeleteButton(index) - Delete-Button testen');
-                console.log('- debugDOMElements() - DOM-Struktur debuggen');
+                            rows.forEach(function(row, i) {
+                                var deleteBtn = row.querySelector('.delete-zeitraum-btn');
+                                var onclick = deleteBtn ? deleteBtn.getAttribute('onclick') : null;
+                                console.log('  Zeile ' + (i+1) + ': {button: ' + !!deleteBtn + ', onclick: "' + onclick + '"}');
+                            });
+                        }
+
+                        console.log('📋 Delete-Buttons:');
+                        var deleteButtons = document.querySelectorAll('.delete-zeitraum-btn');
+                        console.log('  Delete-Buttons: ' + deleteButtons.length);
+                        deleteButtons.forEach(function(btn, i) {
+                            console.log('  Button ' + (i+1) + ': {data-index: "' + btn.getAttribute('data-zeitraum-index') + '", onclick: "' + btn.getAttribute('onclick') + '"}');
+                        });
+
+                        console.log('=====================================');
+                    };
+
+                    // Debug-Info
+                    console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
+                    console.log('🔧 Debug-Funktionen verfügbar:');
+                    console.log('- testModalSubmit() - Modal mit Testdaten öffnen');
+                    console.log('- testDeleteButton(index) - Delete-Button testen');
+                    console.log('- debugDOMElements() - DOM-Struktur debuggen');
             </text>
         }
     </script>
     }
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+@{
+    await Html.RenderPartialAsync("_ValidationScriptsPartial");
+}

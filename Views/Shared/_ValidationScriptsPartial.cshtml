@@ -1,2 +1,37 @@
-﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+﻿@*
+    Validation Scripts müssen NACH jQuery geladen werden
+    Diese Datei wird vom Layout NACH jQuery eingebunden
+*@
+
+@* Prüfen ob jQuery verfügbar ist, bevor Validation Scripts geladen werden *@
+<script>
+    if (typeof jQuery === 'undefined') {
+        console.error('❌ jQuery ist nicht verfügbar für Validation Scripts!');
+        console.log('🔧 Validation Scripts werden übersprungen');
+    } else {
+        // jQuery ist verfügbar, lade Validation Scripts
+        console.log('✅ jQuery verfügbar, lade Validation Scripts...');
+
+        // Dynamisch laden, um Fehler zu vermeiden
+        var validationScript = document.createElement('script');
+        validationScript.src = '/lib/jquery-validation/dist/jquery.validate.min.js';
+        validationScript.onload = function() {
+            console.log('✅ jQuery Validation geladen');
+
+            // Dann unobtrusive validation laden
+            var unobtrusiveScript = document.createElement('script');
+            unobtrusiveScript.src = '/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js';
+            unobtrusiveScript.onload = function() {
+                console.log('✅ jQuery Unobtrusive Validation geladen');
+            };
+            unobtrusiveScript.onerror = function() {
+                console.warn('⚠️ jQuery Unobtrusive Validation konnte nicht geladen werden');
+            };
+            document.head.appendChild(unobtrusiveScript);
+        };
+        validationScript.onerror = function() {
+            console.warn('⚠️ jQuery Validation konnte nicht geladen werden');
+        };
+        document.head.appendChild(validationScript);
+    }
+</script>

@@ -30,6 +30,15 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         }
 
         // ================================
+        // 🔧 HILFE-SEITE
+        // ================================
+        public IActionResult Help()
+        {
+            _debugService.LogController("Home", "Help", "Lade Hilfe-Seite");
+            return View();
+        }
+
+        // ================================
         // 🔧 ZEITRAUM HINZUFÜGEN - BEHOBEN
         // ================================
         [HttpPost]

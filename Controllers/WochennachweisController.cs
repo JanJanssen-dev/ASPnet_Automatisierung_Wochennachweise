@@ -56,7 +56,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                         Beschreibungen = w.Beschreibungen,
                         Jahr = w.Jahr,
                         Ausbildungsjahr = w.Ausbildungsjahr,
+                        // KORRIGIERT: Dictionary<string, object> zu Dictionary<string, string> konvertieren
                         TemplateData = _generator.GenerateTemplateData(w, config)
+                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty)
                     }).ToList()
                 };
 
@@ -153,8 +155,6 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 templateExists = System.IO.File.Exists(Path.Combine(_environment.WebRootPath, "templates", "Wochennachweis_Vorlage.docx"))
             });
         }
-        // KORRIGIERTE VERSION - Fügen Sie diese Methoden zu Ihrem bestehenden WochennachweisController.cs hinzu:
-        // (Die using-Statements und Klassendeklaration sind bereits vorhanden!)
 
         [HttpGet("current-config")]
         public ActionResult<UmschulungConfig> GetCurrentConfig()
@@ -221,7 +221,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                         Beschreibungen = w.Beschreibungen,
                         Jahr = w.Jahr,
                         Ausbildungsjahr = w.Ausbildungsjahr,
+                        // KORRIGIERT: Dictionary<string, object> zu Dictionary<string, string> konvertieren
                         TemplateData = _generator.GenerateTemplateData(w, config)
+                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty)
                     }).ToList()
                 };
 

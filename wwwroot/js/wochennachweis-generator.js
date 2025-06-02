@@ -5,38 +5,6 @@ class ClientWochennachweisGenerator {
         this.isGenerating = false;
     }
 
-    // In der initialize-Methode der ClientWochennachweisGenerator-Klasse
-    //async initialize() {
-    //    try {
-    //        // Template beim Laden der Seite vorab herunterladen
-    //        const response = await fetch('/api/wochennachweis/template');
-    //        if (response.ok) {
-    //            this.template = await response.arrayBuffer();
-    //            console.log('✅ Template erfolgreich geladen');
-    //        } else {
-    //            console.warn('⚠️ Template konnte nicht geladen werden:', await response.text());
-    //        }
-    //    } catch (error) {
-    //        console.error('❌ Fehler beim Vorab-Laden des Templates:', error);
-    //    }
-
-    //    // Verbesserte Bibliotheken-Prüfung
-    //    const missingLibs = [];
-    //    if (typeof PizZip === 'undefined') missingLibs.push('PizZip');
-    //    if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') missingLibs.push('Docxtemplater');
-    //    if (typeof JSZip === 'undefined') missingLibs.push('JSZip');
-
-    //    if (missingLibs.length > 0) {
-    //        const errorMessage = `Folgende benötigte Bibliotheken konnten nicht geladen werden: ${missingLibs.join(', ')}.
-    //        <button class="btn btn-sm btn-primary mt-2" onclick="window.location.reload()">
-    //            <i class="bi bi-arrow-clockwise me-1"></i>Seite neu laden
-    //        </button>`;
-    //        this.showError(errorMessage);
-    //        return false;
-    //    }
-
-    //    return true;
-    //}
     async initialize() {
         try {
             // Template beim Laden der Seite vorab herunterladen
@@ -92,7 +60,7 @@ class ClientWochennachweisGenerator {
 
     async downloadSingleDocument(woche) {
         try {
-            this.showProgress(`📄 Erstelle Dokument für Woche ${woche.nummer}...`);
+            this.showProgress(`📄 Erstelle Dokument für Woche ${woche.nummer || woche.Nummer}...`);
 
             // Wenn das Template noch nicht geladen ist
             if (!this.template) {
@@ -107,11 +75,15 @@ class ClientWochennachweisGenerator {
             // Dokument erstellen
             const document = await this.createDocument(woche);
 
-            // Dateinamen erstellen und herunterladen
-            const filename = `Wochennachweis_Woche_${String(woche.nummer).padStart(2, '0')}_${woche.kategorie}.docx`;
-            this.downloadBlob(document, filename);
+            // KORRIGIERTER DATEINAME: NR_Monat_Kategorie
+            const wocheNummer = woche.nummer || woche.Nummer || 'Unbekannt';
+            const monat = woche.templateData?.MONAT || woche.TemplateData?.MONAT || 'Unbekannt';
+            const kategorie = woche.kategorie || woche.Kategorie || 'Sonstige';
+            const filename = `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`;
 
-            this.showSuccess(`✅ Dokument für Woche ${woche.nummer} erstellt!`);
+            this.downloadBlob(new Blob([document]), filename);
+
+            this.showSuccess(`✅ Dokument für Woche ${wocheNummer} erstellt!`);
         } catch (error) {
             console.error('❌ Fehler beim Erstellen des Dokuments:', error);
             this.showError(`Fehler: ${error.message}`);
@@ -168,20 +140,31 @@ class ClientWochennachweisGenerator {
             this.showProgress('🔨 Erstelle Word-Dokumente...');
             const documents = [];
 
-            for (let i = 0; i < wochennachweisData.wochen.length; i++) {
-                const woche = wochennachweisData.wochen[i];
-                this.showProgress(`📝 Erstelle Dokument ${i + 1}/${wochennachweisData.wochen.length} (Woche ${woche.nummer})...`);
+            // Flexible Property-Zugriffe für verschiedene Formate
+            const wochenArray = this.getWochenArray(wochennachweisData);
+
+            for (let i = 0; i < wochenArray.length; i++) {
+                const woche = wochenArray[i];
+                const wocheNummer = woche.nummer || woche.Nummer || 'Unbekannt';
+                this.showProgress(`📝 Erstelle Dokument ${i + 1}/${wochenArray.length} (Woche ${wocheNummer})...`);
 
                 try {
                     const document = await this.createDocument(woche);
+
+                    // KORRIGIERTER DATEINAME: NR_Monat_Kategorie
+                    const monat = woche.templateData?.MONAT || woche.TemplateData?.MONAT || 'Unbekannt';
+                    const kategorie = woche.kategorie || woche.Kategorie || 'Sonstige';
+                    const filename = `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`;
+
                     documents.push({
-                        name: `Wochennachweis_Woche_${String(woche.nummer).padStart(2, '0')}_${woche.kategorie}.docx`,
+                        name: filename,
                         content: document,
-                        woche: woche
+                        woche: woche,
+                        kategorie: kategorie // Für Ordnerstruktur
                     });
                 } catch (docError) {
                     console.error(`❌ Fehler bei Dokument ${i + 1}:`, docError);
-                    this.showError(`Fehler bei Woche ${woche.nummer}: ${docError.message}`);
+                    this.showError(`Fehler bei Woche ${wocheNummer}: ${docError.message}`);
                 }
             }
 
@@ -206,8 +189,18 @@ class ClientWochennachweisGenerator {
         }
     }
 
+    // HILFSMETHODE: Flexible Zugriffe auf Wochen-Array
+    getWochenArray(wochennachweisData) {
+        if (!wochennachweisData) {
+            return [];
+        }
 
-
+        // Versuche verschiedene Property-Namen
+        return wochennachweisData.wochen ||
+            wochennachweisData.Wochen ||
+            wochennachweisData.WOCHEN ||
+            [];
+    }
 
     getConfigFromForm() {
         return {
@@ -264,6 +257,7 @@ class ClientWochennachweisGenerator {
 
         return true;
     }
+
     async testDocxtemplater() {
         try {
             this.showProgress('🔧 Teste Docxtemplater...');
@@ -354,7 +348,6 @@ class ClientWochennachweisGenerator {
         }
     }
 
-
     async createDocument(wochenData) {
         try {
             // 1. PizZip-Instanz mit dem Template erstellen
@@ -374,8 +367,9 @@ class ClientWochennachweisGenerator {
                 }
             });
 
-            // 4. Daten setzen
-            doc.setData(wochenData.templateData);
+            // 4. Daten setzen - Flexible Property-Zugriffe
+            const templateData = wochenData.templateData || wochenData.TemplateData || {};
+            doc.setData(templateData);
 
             // 5. Template rendern
             doc.render();
@@ -405,18 +399,56 @@ class ClientWochennachweisGenerator {
         }
     }
 
-
-    
-
-
+    // KORRIGIERTE ZIP-ERSTELLUNG MIT ORDNERSTRUKTUR
     async createZipDownload(documents, metaData) {
         try {
             const zip = new JSZip();
 
-            // Alle Dokumente zum ZIP hinzufügen
+            // Dokumente nach Kategorien sortieren und in Ordner ablegen
+            const kategorien = {};
             documents.forEach(doc => {
-                zip.file(doc.name, doc.content);
+                const kategorie = doc.kategorie || 'Sonstige';
+                if (!kategorien[kategorie]) {
+                    kategorien[kategorie] = [];
+                }
+                kategorien[kategorie].push(doc);
             });
+
+            // Für jede Kategorie einen Ordner erstellen
+            Object.keys(kategorien).forEach(kategorie => {
+                kategorien[kategorie].forEach(doc => {
+                    // Datei in entsprechenden Unterordner legen
+                    zip.file(`${kategorie}/${doc.name}`, doc.content);
+                });
+            });
+
+            // README.txt in Root des ZIPs
+            const nachname = metaData.nachname || metaData.Nachname || 'Unbekannt';
+            const vorname = metaData.vorname || metaData.Vorname || 'Unbekannt';
+            const klasse = metaData.klasse || metaData.Klasse || 'Unbekannt';
+
+            const readme = `Wochennachweise
+=================
+Erstellt am: ${new Date().toLocaleString('de-DE')}
+Anzahl Dokumente: ${documents.length}
+Name: ${nachname}, ${vorname}
+Klasse: ${klasse}
+
+Ordnerstruktur:
+${Object.keys(kategorien).map(kat =>
+                `- ${kat}/ (${kategorien[kat].length} Dokumente)`
+            ).join('\n')}
+
+Dokumente nach Kategorien:
+${Object.keys(kategorien).map(kat =>
+                `\n${kat}:\n${kategorien[kat].map(doc => `  - ${doc.name}`).join('\n')}`
+            ).join('')}
+
+Hinweis: Diese Dokumente wurden client-seitig generiert.
+Alle Daten wurden lokal in Ihrem Browser verarbeitet.
+Keine personenbezogenen Daten wurden an externe Server übertragen.
+`;
+            zip.file('README.txt', readme);
 
             // ZIP generieren
             const zipContent = await zip.generateAsync({
@@ -428,7 +460,7 @@ class ClientWochennachweisGenerator {
             });
 
             // Download starten
-            const filename = `Wochennachweise_${metaData.nachname}_${new Date().toISOString().split('T')[0]}.zip`;
+            const filename = `Wochennachweise_${nachname}_${new Date().toISOString().split('T')[0]}.zip`;
             this.downloadBlob(zipContent, filename);
 
         } catch (error) {
@@ -437,13 +469,29 @@ class ClientWochennachweisGenerator {
     }
 
     downloadBlob(blob, filename) {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
+        try {
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // URL nach kurzer Zeit freigeben
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 1000);
+
+            console.log('💾 Download gestartet:', filename);
+
+        } catch (error) {
+            console.error('❌ Download-Fehler:', error);
+            throw new Error(`Download fehlgeschlagen: ${error.message}`);
+        }
     }
 
     showDownloadButtons(documents) {
@@ -469,9 +517,10 @@ class ClientWochennachweisGenerator {
             const buttonCol = document.createElement('div');
             buttonCol.className = 'col-md-3 mb-2';
 
+            const wocheNummer = doc.woche.nummer || doc.woche.Nummer || 'X';
             const button = document.createElement('button');
             button.className = 'btn btn-outline-primary btn-sm w-100';
-            button.innerHTML = `<i class="bi bi-download"></i> Woche ${doc.woche.nummer}`;
+            button.innerHTML = `<i class="bi bi-download"></i> Woche ${wocheNummer}`;
             button.onclick = () => this.downloadSingleDocument(doc.woche);
 
             buttonCol.appendChild(button);
@@ -567,7 +616,8 @@ document.addEventListener('DOMContentLoaded', function () {
             await wochennachweisGenerator.generateDocuments();
         });
     }
-    // NEUER CODE: Event-Handler für den Test-Button
+
+    // Event-Handler für den Test-Button
     const testButton = document.getElementById('test-docxtemplater-button');
     if (testButton) {
         testButton.addEventListener('click', async function () {

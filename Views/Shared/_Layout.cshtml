@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ASPnet_Automatisierung_Wochennachweise.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <header>
@@ -23,8 +25,8 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-house me-1"></i>Generator
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Help">
+                                <i class="bi bi-question-circle me-1"></i>So funktioniert's
                             </a>
                         </li>
                         <li class="nav-item">
@@ -33,11 +35,6 @@
                             </a>
                         </li>
                     </ul>
-                    <span class="navbar-text">
-                        <small class="text-muted">
-                            <i class="bi bi-cpu me-1"></i>Client-seitige Generierung
-                        </small>
-                    </span>
                 </div>
             </div>
         </nav>
@@ -55,16 +52,19 @@
             <a asp-area="" asp-controller="Home" asp-action="Privacy">Datenschutz</a>
             <span class="float-end">
                 <small>
-                    <i class="bi bi-lightning me-1"></i>Powered by Client-Side Generation
+                    <i class="bi bi-shield-check me-1"></i>Client-seitige Verarbeitung
                 </small>
             </span>
         </div>
     </footer>
 
     <!-- ================================ -->
-    <!-- 🔧 STANDARD SCRIPTS -->
+    <!-- 🔧 STANDARD SCRIPTS - KORREKTE REIHENFOLGE -->
     <!-- ================================ -->
+    <!-- 1. ZUERST: jQuery (muss vor allem anderen jQuery-abhängigen Code stehen) -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- 2. DANN: Bootstrap (benötigt jQuery) -->
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- ================================ -->
@@ -106,6 +106,7 @@
             console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
             console.log('- Docxtemplater:', typeof Docxtemplater !== 'undefined' || typeof docxtemplater !== 'undefined' ? '✅' : '❌');
             console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
+            console.log('- SweetAlert2:', typeof Swal !== 'undefined' ? '✅' : '❌');
 
             // Globale Debug-Funktionen
             window.debugFormSubmit = function(formId) {
@@ -191,6 +192,9 @@
             }
             if (typeof JSZip === 'undefined') {
                 console.warn('⚠️ JSZip nicht geladen - Archiv-Erstellung nicht verfügbar');
+            }
+            if (typeof Swal === 'undefined') {
+                console.warn('⚠️ SweetAlert2 nicht geladen - Erweiterte Dialoge nicht verfügbar');
             }
         </script>
     }
