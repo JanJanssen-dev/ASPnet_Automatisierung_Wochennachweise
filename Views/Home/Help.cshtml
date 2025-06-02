@@ -75,6 +75,76 @@
                         </ul>
                     </div>
 
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-calendar-x me-2"></i>Beispiel für Lücken</h6>
+                        <p class="mb-2"><strong>Problematisch:</strong></p>
+                        <ul class="mb-2">
+                            <li>Umschulungsbeginn: 01.01.2024</li>
+                            <li>Erster Zeitraum: 01.06.2024 - 30.06.2024 (Praktikum)</li>
+                            <li><span class="text-danger">❌ Lücke: 01.01. - 31.05. (5 Monate ohne Zeitraum!)</span></li>
+                        </ul>
+                        <p class="mb-2"><strong>Richtig:</strong></p>
+                        <ul class="mb-0">
+                            <li>Zeitraum 1: 01.01.2024 - 31.05.2024 (Umschulung)</li>
+                            <li>Zeitraum 2: 01.06.2024 - 30.06.2024 (Praktikum)</li>
+                            <li><span class="text-success">✅ Alle Wochen abgedeckt</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================ -->
+            <!-- 🔧 DETAILLIERTE ANLEITUNG -->
+            <!-- ================================ -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ol me-2"></i>Detaillierte Anleitung
+                    </h5>
+                </div>
+                <div class="card-body">
+
+                    <h6><i class="bi bi-person-circle me-2"></i>1. Grunddaten eingeben</h6>
+                    <ul>
+                        <li><strong>Umschulungsbeginn:</strong> Das tatsächliche Startdatum Ihrer Umschulung</li>
+                        <li><strong>Name:</strong> Vor- und Nachname (wird in allen Dokumenten verwendet)</li>
+                        <li><strong>Klasse/Kurs:</strong> z.B. "FIAE-2023-A" oder "Umschulung 2024"</li>
+                    </ul>
+
+                    <h6 class="mt-4"><i class="bi bi-calendar3 me-2"></i>2. Zeiträume definieren</h6>
+                    <p>Fügen Sie <strong>alle</strong> Zeiträume Ihrer Umschulung hinzu:</p>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><span class="badge bg-primary">Umschulung</span></h6>
+                            <ul>
+                                <li>Reguläre Unterrichtszeiten</li>
+                                <li>Prüfungsvorbereitungen</li>
+                                <li>Projektphasen</li>
+                                <li>Alle Zeiten in der Bildungseinrichtung</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><span class="badge bg-success">Praktikum</span></h6>
+                            <ul>
+                                <li>Betriebspraktika</li>
+                                <li>Praktische Phasen</li>
+                                <li>Arbeitsplätze in Unternehmen</li>
+                                <li>Externe Projekte</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light mt-3">
+                        <h6><i class="bi bi-lightbulb me-2"></i>Tipp: Beschreibungen</h6>
+                        <p class="mb-2">Die Beschreibung erscheint in allen Wochennachweisen des Zeitraums:</p>
+                        <ul class="mb-0">
+                            <li><strong>Lücken zwischen Zeiträumen werden übersprungen</strong></li>
+                            <li>Definieren Sie alle Zeiträume vom Umschulungsbeginn bis zum Ende</li>
+                            <li>Auch "normale" Umschulungswochen müssen als Zeitraum eingetragen werden</li>
+                        </ul>
+                    </div>
+
                     <h6 class="mt-4"><i class="bi bi-file-earmark-word me-2"></i>3. Dokumente generieren</h6>
                     <ul>
                         <li>Klicken Sie auf "Wochennachweise generieren"</li>
@@ -123,27 +193,6 @@
                             </ul>
                         </div>
                     </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6><i class="bi bi-file-earmark-word me-2"></i>Dokumentformat</h6>
-                            <ul>
-                                <li>Microsoft Word .docx Format</li>
-                                <li>Vorgefertigte Vorlagen werden gefüllt</li>
-                                <li>Alle Felder automatisch ausgefüllt</li>
-                                <li>Ready-to-print Dokumente</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6><i class="bi bi-folder me-2"></i>Dateiorganisation</h6>
-                            <ul>
-                                <li>ZIP-Archiv mit Unterordnern</li>
-                                <li>Praktikum/ für alle Praktikumsnachweise</li>
-                                <li>Umschulung/ für alle Umschulungsnachweise</li>
-                                <li>README.txt mit Übersicht</li>
-                            </ul>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -183,31 +232,10 @@
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="problem2">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
-                                    <i class="bi bi-question-circle me-2"></i>Wochennummern stimmen nicht
-                                </button>
-                            </h2>
-                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
-                                <div class="accordion-body">
-                                    <p><strong>Erklärung:</strong> Wochennummern werden seit dem Umschulungsbeginn gezählt.</p>
-                                    <p><strong>Beispiel:</strong></p>
-                                    <ul>
-                                        <li>Umschulungsbeginn: 01.01.2024</li>
-                                        <li>Praktikum ab: 01.06.2024</li>
-                                        <li>Erste Praktikumswoche = Woche 22 (da 22 Wochen seit Start)</li>
-                                    </ul>
-                                    <p>Das ist korrekt und entspricht dem gewünschten Verhalten.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Problem 3 -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="problem3">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
                                     <i class="bi bi-question-circle me-2"></i>Download funktioniert nicht
                                 </button>
                             </h2>
-                            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
+                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
                                 <div class="accordion-body">
                                     <p><strong>Mögliche Ursachen:</strong></p>
                                     <ul>
@@ -220,31 +248,6 @@
                                         <li>Downloads in Browser-Einstellungen erlauben</li>
                                         <li>Seite neu laden und erneut versuchen</li>
                                         <li>Anderer Browser (Chrome, Firefox, Edge)</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Problem 4 -->
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="problem4">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
-                                    <i class="bi bi-question-circle me-2"></i>Dokumente sind leer oder fehlerhaft
-                                </button>
-                            </h2>
-                            <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#problemAccordion">
-                                <div class="accordion-body">
-                                    <p><strong>Mögliche Ursachen:</strong></p>
-                                    <ul>
-                                        <li>Template-Datei ist beschädigt</li>
-                                        <li>Browser-Cache-Probleme</li>
-                                        <li>Inkkompatible Word-Version</li>
-                                    </ul>
-                                    <p><strong>Lösungen:</strong></p>
-                                    <ul>
-                                        <li>Browser-Cache leeren (Strg+F5)</li>
-                                        <li>Seite in privatem/inkognito Modus öffnen</li>
-                                        <li>Mit Microsoft Word 2016 oder neuer öffnen</li>
                                     </ul>
                                 </div>
                             </div>
@@ -301,7 +304,6 @@
                 button.addEventListener('click', function() {
                     const icon = this.querySelector('.bi');
                     if (this.classList.contains('collapsed')) {
-                        // Wird geöffnet
                         setTimeout(() => {
                             if (!this.classList.contains('collapsed')) {
                                 icon.classList.remove('bi-question-circle');
@@ -309,7 +311,6 @@
                             }
                         }, 300);
                     } else {
-                        // Wird geschlossen
                         icon.classList.remove('bi-question-circle-fill');
                         icon.classList.add('bi-question-circle');
                     }
@@ -317,78 +318,4 @@
             });
         });
     </script>
-}mb-0">
-<li>Lücken zwischen Zeiträumen werden übersprungen</li>
-<li>Definieren Sie alle Zeiträume vom Umschulungsbeginn bis zum Ende</li>
-<li>Auch "normale" Umschulungswochen müssen als Zeitraum eingetragen werden</li>
-                        </ul>
-                    </div>
-
-<div class="alert alert-warning">
-    <h6><i class="bi bi-calendar-x me-2"></i>Beispiel für Lücken</h6>
-    <p class="mb-2">
-        <strong>Problematisch:</strong>
-    </p>
-    <ul class="mb-2">
-        <li>Umschulungsbeginn: 01.01.2024</li>
-        <li>Erster Zeitraum: 01.06.2024 - 30.06.2024 (Praktikum)</li>
-        <li><span class="text-danger">❌ Lücke: 01.01. - 31.05. (5 Monate ohne Zeitraum!)</span></li>
-    </ul>
-    <p class="mb-2">
-        <strong>Richtig:</strong>
-    </p>
-    <ul class="mb-0">
-        <li>Zeitraum 1: 01.01.2024 - 31.05.2024 (Umschulung)</li>
-        <li>Zeitraum 2: 01.06.2024 - 30.06.2024 (Praktikum)</li>
-        <li><span class="text-success">✅ Alle Wochen abgedeckt</span></li>
-    </ul>
-</div>
-                </div>
-            </div>
-
-<!-- ================================ -->
-<!-- 🔧 DETAILLIERTE ANLEITUNG -->
-<!-- ================================ -->
-<div class="card mb-4 shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">
-            <i class="bi bi-list-ol me-2"></i>Detaillierte Anleitung
-        </h5>
-    </div>
-    <div class="card-body">
-
-        <h6><i class="bi bi-person-circle me-2"></i>1. Grunddaten eingeben</h6>
-        <ul>
-            <li><strong>Umschulungsbeginn:</strong> Das tatsächliche Startdatum Ihrer Umschulung</li>
-            <li><strong>Name:</strong> Vor- und Nachname (wird in allen Dokumenten verwendet)</li>
-            <li><strong>Klasse/Kurs:</strong> z.B. "FIAE-2023-A" oder "Umschulung 2024"</li>
-        </ul>
-
-        <h6 class="mt-4"><i class="bi bi-calendar3 me-2"></i>2. Zeiträume definieren</h6>
-        <p>Fügen Sie <strong>alle</strong> Zeiträume Ihrer Umschulung hinzu:</p>
-
-        <div class="row">
-            <div class="col-md-6">
-                <h6><span class="badge bg-primary">Umschulung</span></h6>
-                <ul>
-                    <li>Reguläre Unterrichtszeiten</li>
-                    <li>Prüfungsvorbereitungen</li>
-                    <li>Projektphasen</li>
-                    <li>Alle Zeiten in der Bildungseinrichtung</li>
-                </ul>
-            </div>
-            <div class="col-md-6">
-                <h6><span class="badge bg-success">Praktikum</span></h6>
-                <ul>
-                    <li>Betriebspraktika</li>
-                    <li>Praktische Phasen</li>
-                    <li>Arbeitsplätze in Unternehmen</li>
-                    <li>Externe Projekte</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="alert alert-light mt-3">
-            <h6><i class="bi bi-lightbulb me-2"></i>Tipp: Beschreibungen</h6>
-            <p class="mb-2">Die Beschreibung erscheint in allen Wochennachweisen des Zeitraums:</p>
-            <ul class="
+}

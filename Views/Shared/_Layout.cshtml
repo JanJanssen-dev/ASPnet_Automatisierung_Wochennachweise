@@ -61,8 +61,10 @@
     <!-- ================================ -->
     <!-- 🔧 STANDARD SCRIPTS - KORREKTE REIHENFOLGE -->
     <!-- ================================ -->
-    <!-- 1. ZUERST: jQuery (muss vor allem anderen jQuery-abhängigen Code stehen) -->
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <!-- 1. ZUERST: jQuery (muss vor allem anderen stehen) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+            integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- 2. DANN: Bootstrap (benötigt jQuery) -->
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -93,123 +95,47 @@
     @if (Context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<DebugOptions>>().Value.EnableDebug)
     {
         <script>
-            // ================================
-            // 🔧 DEBUG-MODUS AKTIV
-            // ================================
             window.DEBUG_MODE = true;
 
-            console.log('%c🔧 DEBUG-MODUS AKTIV', 'background: #007bff; color: white; padding: 5px; border-radius: 3px;');
-            console.log('🔧 Development Mode aktiv');
-            console.log('📚 Libraries geladen:');
-            console.log('- jQuery:', typeof $ !== 'undefined' ? '✅' : '❌');
-            console.log('- Bootstrap:', typeof bootstrap !== 'undefined' ? '✅' : '❌');
-            console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
-            console.log('- Docxtemplater:', typeof Docxtemplater !== 'undefined' || typeof docxtemplater !== 'undefined' ? '✅' : '❌');
-            console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
-            console.log('- SweetAlert2:', typeof Swal !== 'undefined' ? '✅' : '❌');
+            // Warten bis alle Scripts geladen sind
+            setTimeout(function() {
+                console.log('%c🔧 DEBUG-MODUS AKTIV', 'background: #007bff; color: white; padding: 5px; border-radius: 3px;');
+                console.log('📚 Libraries geladen:');
+                console.log('- jQuery:', typeof $ !== 'undefined' ? '✅' : '❌');
+                console.log('- Bootstrap:', typeof bootstrap !== 'undefined' ? '✅' : '❌');
+                console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
+                console.log('- Docxtemplater (Global):', typeof Docxtemplater !== 'undefined' ? '✅' : '❌');
+                console.log('- docxtemplater (lowercase):', typeof docxtemplater !== 'undefined' ? '✅' : '❌');
+                console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
+                console.log('- SweetAlert2:', typeof Swal !== 'undefined' ? '✅' : '❌');
 
-            // Globale Debug-Funktionen
-            window.debugFormSubmit = function(formId) {
-                console.log(`🔧 Debug Form Submit: ${formId}`);
-                const form = document.getElementById(formId);
-                if (form) {
-                    console.log('Form gefunden:', form);
-                    console.log('Form Action:', form.action);
-                    console.log('Form Method:', form.method);
-
-                    // Formular-Daten loggen
-                    const formData = new FormData(form);
-                    console.log('Form Data:');
-                    for (let [key, value] of formData.entries()) {
-                        console.log(`  ${key}: ${value}`);
-                    }
-
-                    // Submit ausführen
-                    form.submit();
-                } else {
-                    console.error('❌ Form nicht gefunden:', formId);
+                // Detaillierte Library-Info
+                if (typeof PizZip !== 'undefined') {
+                    console.log('📦 PizZip Version:', PizZip.version || 'unbekannt');
                 }
-            };
-
-            window.debugButtonClick = function(buttonId) {
-                console.log(`🔧 Debug Button Click: ${buttonId}`);
-                const button = document.getElementById(buttonId);
-                if (button) {
-                    console.log('Button gefunden:', button);
-                    button.click();
-                } else {
-                    console.error('❌ Button nicht gefunden:', buttonId);
+                if (typeof docxtemplater !== 'undefined') {
+                    console.log('📄 Docxtemplater verfügbar');
+                } else if (typeof Docxtemplater !== 'undefined') {
+                    console.log('📄 Docxtemplater (Global) verfügbar');
                 }
-            };
-
-            // Form-Submit-Monitoring
-            document.addEventListener('DOMContentLoaded', function() {
-                const forms = document.querySelectorAll('form');
-                console.log(`🔧 ${forms.length} Formulare gefunden`);
-
-                forms.forEach((form, index) => {
-                    console.log(`🔧 Form ${index + 1}:`, {
-                        id: form.id,
-                        action: form.action,
-                        method: form.method,
-                        elements: form.elements.length
-                    });
-
-                    // Submit-Event überwachen
-                    form.addEventListener('submit', function(e) {
-                        console.log(`🔧 Form Submit Event:`, {
-                            id: form.id,
-                            action: form.action,
-                            method: form.method,
-                            defaultPrevented: e.defaultPrevented
-                        });
-                    });
-                });
-
-                // Button-Monitoring
-                const buttons = document.querySelectorAll('button[type="submit"], button[type="button"]');
-                console.log(`🔧 ${buttons.length} Buttons gefunden`);
-
-                buttons.forEach((button, index) => {
-                    button.addEventListener('click', function(e) {
-                        console.log(`🔧 Button Click:`, {
-                            id: button.id,
-                            type: button.type,
-                            text: button.textContent.trim(),
-                            disabled: button.disabled,
-                            defaultPrevented: e.defaultPrevented
-                        });
-                    });
-                });
-            });
-
-            // Fehlende Libraries warnen
-            if (typeof PizZip === 'undefined') {
-                console.warn('⚠️ PizZip nicht geladen - ZIP-Funktionalität nicht verfügbar');
-            }
-            if (typeof Docxtemplater === 'undefined' && typeof docxtemplater === 'undefined') {
-                console.warn('⚠️ Docxtemplater nicht geladen - Word-Template-Verarbeitung nicht verfügbar');
-            }
-            if (typeof JSZip === 'undefined') {
-                console.warn('⚠️ JSZip nicht geladen - Archiv-Erstellung nicht verfügbar');
-            }
-            if (typeof Swal === 'undefined') {
-                console.warn('⚠️ SweetAlert2 nicht geladen - Erweiterte Dialoge nicht verfügbar');
-            }
+            }, 1000);
         </script>
     }
     else
     {
         <script>
-            // ================================
-            // 🔧 PRODUCTION-MODUS
-            // ================================
             window.DEBUG_MODE = false;
 
-            // Minimales Library-Check
-            if (typeof PizZip === 'undefined' || typeof JSZip === 'undefined') {
-                console.warn('⚠️ Benötigte Libraries nicht vollständig geladen');
-            }
+            // Minimale Library-Prüfung nach 1 Sekunde
+            setTimeout(function() {
+                if (typeof PizZip === 'undefined' || typeof JSZip === 'undefined') {
+                    console.warn('⚠️ Benötigte Libraries nicht vollständig geladen');
+                    console.log('🔧 Verfügbare Libraries:');
+                    console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
+                    console.log('- Docxtemplater:', (typeof docxtemplater !== 'undefined' || typeof Docxtemplater !== 'undefined') ? '✅' : '❌');
+                    console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
+                }
+            }, 1000);
         </script>
     }
 

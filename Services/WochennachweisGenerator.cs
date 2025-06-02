@@ -1,4 +1,4 @@
-using ASPnet_Automatisierung_Wochennachweise.Models;
+ï»¿using ASPnet_Automatisierung_Wochennachweise.Models;
 using System.Globalization;
 
 namespace ASPnet_Automatisierung_Wochennachweise.Services
@@ -15,126 +15,147 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         public List<Wochennachweis> GenerateWochennachweiseData(UmschulungConfig config)
         {
             var wochennachweise = new List<Wochennachweis>();
-            //var aktuelleWoche = 1;
-
-            // Startdatum auf Montag der ersten Woche setzen
-            var startDatum = GetMondayOfWeek(config.Umschulungsbeginn);
+            int wochenNummer = 1;
 
             foreach (var zeitraum in config.Zeitraeume.OrderBy(z => z.Start))
             {
-                // Berechne die tatsächliche Wochennummer basierend auf dem Umschulungsbeginn
-                var zeitraumStart = GetMondayOfWeek(zeitraum.Start);
-                var wochenSeitStart = GetWeeksSince(startDatum, zeitraumStart);
-
-                var aktuellerMontag = zeitraumStart;
-                var zeitraumEnde = zeitraum.Ende;
-
-                while (aktuellerMontag <= zeitraumEnde)
-                {
-                    var samstag = aktuellerMontag.AddDays(5); // Samstag der Woche
-
-                    // Prüfe ob diese Woche wirklich in den Zeitraum fällt
-                    if (DoesWeekOverlapWithPeriod(aktuellerMontag, samstag, zeitraum.Start, zeitraum.Ende))
-                    {
-                        var wochennachweis = new Wochennachweis
-                        {
-                            Nummer = wochenSeitStart + 1, // +1 weil wir bei Woche 1 anfangen wollen
-                            Kategorie = zeitraum.Kategorie,
-                            Montag = aktuellerMontag,
-                            Samstag = samstag,
-                            Jahr = aktuellerMontag.Year,
-                            Ausbildungsjahr = CalculateAusbildungsjahr(config.Umschulungsbeginn, aktuellerMontag),
-                            Beschreibungen = new List<string> { zeitraum.Beschreibung }
-                        };
-
-                        wochennachweise.Add(wochennachweis);
-                    }
-
-                    aktuellerMontag = aktuellerMontag.AddDays(7);
-                    wochenSeitStart++;
-                }
+                var wochen = GenerateWochenFuerZeitraum(zeitraum, config.Umschulungsbeginn, wochenNummer);
+                wochennachweise.AddRange(wochen);
+                wochenNummer += wochen.Count;
             }
 
-            return wochennachweise.OrderBy(w => w.Montag).ToList();
+            return wochennachweise;
+        }
+
+        private List<Wochennachweis> GenerateWochenFuerZeitraum(Zeitraum zeitraum, DateTime umschulungsbeginn, int startWochenNummer)
+        {
+            var wochen = new List<Wochennachweis>();
+
+            // Montag der ersten Woche finden
+            var start = zeitraum.Start;
+            var montag = start.AddDays(-(int)start.DayOfWeek + (int)DayOfWeek.Monday);
+            if (montag > start) montag = montag.AddDays(-7);
+
+            var ende = zeitraum.Ende;
+            var currentMontag = montag;
+            int wochenNummer = startWochenNummer;
+
+            while (currentMontag <= ende)
+            {
+                var samstag = currentMontag.AddDays(5); // Samstag der Woche
+
+                // Nur Wochen hinzufÃ¼gen, die im Zeitraum liegen
+                if (currentMontag <= ende && samstag >= zeitraum.Start)
+                {
+                    var woche = new Wochennachweis
+                    {
+                        Nummer = wochenNummer,
+                        Kategorie = zeitraum.Kategorie,
+                        Montag = currentMontag,
+                        Samstag = samstag,
+                        Beschreibungen = new List<string> { zeitraum.Beschreibung },
+                        Jahr = currentMontag.Year,
+                        Ausbildungsjahr = CalculateAusbildungsjahr(umschulungsbeginn, currentMontag)
+                    };
+
+                    wochen.Add(woche);
+                    wochenNummer++;
+                }
+
+                currentMontag = currentMontag.AddDays(7);
+            }
+
+            return wochen;
         }
 
         public Dictionary<string, object> GenerateTemplateData(Wochennachweis woche, UmschulungConfig config)
         {
+            var calendar = new GregorianCalendar();
+
+            // Wochennummer: Jede Woche seit Umschulungsbeginn bekommt eine fortlaufende Nummer
+            var umschulungsstart = config.Umschulungsbeginn;
+            var wocheMontag = woche.Montag;
+
+            // Montag der ersten Woche (Umschulungsbeginn)
+            var ersterMontag = umschulungsstart.AddDays(-(int)umschulungsstart.DayOfWeek + (int)DayOfWeek.Monday);
+            if (ersterMontag > umschulungsstart) ersterMontag = ersterMontag.AddDays(-7);
+
+            // Wochennummer berechnen
+            var wochenSeitStart = ((wocheMontag - ersterMontag).Days / 7) + 1;
+
             var templateData = new Dictionary<string, object>
             {
-                {"NACHNAME", config.Nachname?.ToUpper() ?? ""},
-                {"VORNAME", config.Vorname ?? ""},
-                {"KLASSE", config.Klasse ?? ""},
-                {"WOCHE", woche.Nummer.ToString()},
-                {"DATUM", woche.Montag.ToString("dd.MM.yyyy")}, // Montag
-                {"UDATUM", woche.Samstag.ToString("dd.MM.yyyy")}, // KORRIGIERT: Samstag
-                {"JAHR", woche.Jahr.ToString()},
-                {"AUSBILDUNGSJAHR", woche.Ausbildungsjahr.ToString()},
-                {"BESCHREIBUNG", woche.Beschreibungen.FirstOrDefault() ?? ""},
-                {"KATEGORIE", woche.Kategorie ?? ""}
+                // ================================
+                // ðŸ”§ EXAKT FÃœR DEIN TEMPLATE
+                // ================================
+
+                // Die 5 EintrÃ¤ge fÃ¼r Montag bis Freitag
+                ["EINTRAG1"] = woche.Beschreibungen?.FirstOrDefault() ?? "",  // Montag
+                ["EINTRAG2"] = woche.Beschreibungen?.FirstOrDefault() ?? "",  // Dienstag  
+                ["EINTRAG3"] = woche.Beschreibungen?.FirstOrDefault() ?? "",  // Mittwoch
+                ["EINTRAG4"] = woche.Beschreibungen?.FirstOrDefault() ?? "",  // Donnerstag
+                ["EINTRAG5"] = woche.Beschreibungen?.FirstOrDefault() ?? "",  // Freitag
+
+                // UDATUM = Samstag der Woche (Ende der Woche)
+                ["UDATUM"] = woche.Samstag.ToString("dd.MM.yyyy"),
+
+                // ================================
+                // ðŸ”§ KORREKTE FELDNAMEN
+                // ================================
+
+                // Ausbildungsjahr = AJ (aktuelles Jahr)
+                ["AJ"] = woche.Jahr.ToString(),
+
+                // Wochennummer seit Umschulungsbeginn = WOCHE
+                ["WOCHE"] = Math.Max(1, wochenSeitStart).ToString(),
+
+                // ================================
+                // ðŸ”§ WEITERE DATEN
+                // ================================
+
+                // Zeitraum von-bis (Woche)
+                ["ZEITRAUM"] = $"{woche.Montag:dd.MM.yyyy} - {woche.Samstag:dd.MM.yyyy}",
+
+                ["NACHNAME"] = config.Nachname ?? "",
+                ["VORNAME"] = config.Vorname ?? "",
+                ["KLASSE"] = config.Klasse ?? "",
+                ["KATEGORIE"] = woche.Kategorie ?? "",
+                ["JAHR"] = woche.Jahr.ToString(),
+                ["DATUM"] = woche.Montag.ToString("dd.MM.yyyy"),
+                ["MONTAG"] = woche.Montag.ToString("dd.MM.yyyy"),
+                ["SAMSTAG"] = woche.Samstag.ToString("dd.MM.yyyy"),
+
+                // Kalenderwoche
+                ["KALENDERWOCHE"] = calendar.GetWeekOfYear(woche.Montag, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00"),
+                ["KW"] = calendar.GetWeekOfYear(woche.Montag, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday).ToString("00")
             };
-
-            // Kalenderwoche hinzufügen
-            var calendar = CultureInfo.CurrentCulture.Calendar;
-            var kalenderWoche = calendar.GetWeekOfYear(woche.Montag, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-            templateData.Add("KW", kalenderWoche.ToString());
-
-            // Monat für Dateinamen
-            var monatName = GetMonthName(woche.Montag, woche.Samstag);
-            templateData.Add("MONAT", monatName);
 
             return templateData;
         }
 
-        private DateTime GetMondayOfWeek(DateTime date)
+        private int CalculateAusbildungsjahr(DateTime umschulungsbeginn, DateTime aktuellesDatum)
         {
-            var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
-            return date.AddDays(-daysFromMonday);
-        }
-
-        private int GetWeeksSince(DateTime startDate, DateTime currentDate)
-        {
-            var timeSpan = currentDate - startDate;
-            return (int)(timeSpan.TotalDays / 7);
-        }
-
-        private bool DoesWeekOverlapWithPeriod(DateTime wocheMontag, DateTime wocheSamstag, DateTime zeitraumStart, DateTime zeitraumEnde)
-        {
-            // Eine Woche überlappt mit einem Zeitraum, wenn mindestens ein Tag der Woche im Zeitraum liegt
-            return wocheMontag <= zeitraumEnde && wocheSamstag >= zeitraumStart;
-        }
-
-        private int CalculateAusbildungsjahr(DateTime umschulungsbeginn, DateTime aktuelleDatum)
-        {
-            var jahre = aktuelleDatum.Year - umschulungsbeginn.Year;
-
-            // Wenn das aktuelle Datum vor dem Jahrestag des Umschulungsbeginns liegt
-            if (aktuelleDatum < umschulungsbeginn.AddYears(jahre))
+            var jahre = aktuellesDatum.Year - umschulungsbeginn.Year;
+            if (aktuellesDatum < umschulungsbeginn.AddYears(jahre))
             {
                 jahre--;
             }
-
-            return jahre + 1; // Erstes Jahr = 1, nicht 0
+            return Math.Max(1, jahre + 1);
         }
 
-        private string GetMonthName(DateTime montag, DateTime samstag)
+        private bool CheckFeiertageInWoche(Wochennachweis woche, List<DateTime> feiertage)
         {
-            var culture = new CultureInfo("de-DE");
-            var montagMonat = montag.ToString("MMMM", culture);
-            var samstagMonat = samstag.ToString("MMMM", culture);
+            return feiertage.Any(f => f >= woche.Montag && f <= woche.Samstag.AddDays(1)); // Inkl. Sonntag
+        }
 
-            // Ersten Buchstaben groß schreiben
-            montagMonat = char.ToUpper(montagMonat[0]) + montagMonat.Substring(1);
-            samstagMonat = char.ToUpper(samstagMonat[0]) + samstagMonat.Substring(1);
+        private string GetFeiertagsListeInWoche(Wochennachweis woche, List<DateTime> feiertage)
+        {
+            var feiertagsInWoche = feiertage
+                .Where(f => f >= woche.Montag && f <= woche.Samstag.AddDays(1))
+                .Select(f => f.ToString("dd.MM"))
+                .ToList();
 
-            if (montagMonat == samstagMonat)
-            {
-                return montagMonat;
-            }
-            else
-            {
-                return $"{montagMonat}{samstagMonat}";
-            }
+            return feiertagsInWoche.Any() ? string.Join(", ", feiertagsInWoche) : "Keine";
         }
     }
 }
