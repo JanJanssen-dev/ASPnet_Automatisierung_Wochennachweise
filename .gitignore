@@ -2,6 +2,7 @@
 bin/
 obj/
 out/
+publish/
 
 # Benutzer- und Arbeitsbereichsdateien von Visual Studio
 .vs/
