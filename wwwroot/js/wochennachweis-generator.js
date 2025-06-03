@@ -416,8 +416,11 @@ class ClientWochennachweisGenerator {
 
             // Für jede Kategorie einen Ordner erstellen
             Object.keys(kategorien).forEach(kategorie => {
+                // Folder erstellen (wichtig für manche JSZip-Versionen)
+                zip.folder(kategorie);
+
+                // Dokumente in den Ordner legen
                 kategorien[kategorie].forEach(doc => {
-                    // Datei in entsprechenden Unterordner legen
                     zip.file(`${kategorie}/${doc.name}`, doc.content);
                 });
             });
