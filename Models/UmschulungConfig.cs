@@ -1,172 +1,92 @@
-// Models/UmschulungConfig.cs
 using System.ComponentModel.DataAnnotations;
 
 namespace ASPnet_Automatisierung_Wochennachweise.Models
 {
     public class UmschulungConfig
     {
-        [Required(ErrorMessage = "Umschulungsbeginn ist erforderlich")]
+        [Required(ErrorMessage = "Beginn der Umschulung ist erforderlich")]
         [DataType(DataType.Date)]
-        [Display(Name = "Beginn der Umschulung")]
         public DateTime Umschulungsbeginn { get; set; } = DateTime.Today;
+
+        [Required(ErrorMessage = "Ende der Umschulung ist erforderlich")]
+        [DataType(DataType.Date)]
+        public DateTime UmschulungsEnde { get; set; } = DateTime.Today.AddYears(2);
 
         [Required(ErrorMessage = "Nachname ist erforderlich")]
         [StringLength(100, ErrorMessage = "Nachname darf maximal 100 Zeichen lang sein")]
-        [Display(Name = "Nachname")]
         public string Nachname { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Vorname ist erforderlich")]
         [StringLength(100, ErrorMessage = "Vorname darf maximal 100 Zeichen lang sein")]
-        [Display(Name = "Vorname")]
         public string Vorname { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Klasse/Kurs ist erforderlich")]
+        [Required(ErrorMessage = "Klasse ist erforderlich")]
         [StringLength(50, ErrorMessage = "Klasse darf maximal 50 Zeichen lang sein")]
-        [Display(Name = "Klasse/Kurs")]
         public string Klasse { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Bundesland ist erforderlich")]
+        public string Bundesland { get; set; } = "DE-NW"; // NRW als Standard
 
         public List<Zeitraum> Zeitraeume { get; set; } = new();
 
-        [Display(Name = "Neuer Zeitraum")]
-        public Zeitraum? NeuZeitraum { get; set; } = new Zeitraum();
+        // Für Inline-Eingabe (neuer Ansatz ohne Modal)
+        public Zeitraum? NeuerZeitraum { get; set; } = new Zeitraum();
 
-        // Berechnete Properties
-        public string PersonVollständig => $"{Vorname} {Nachname}".Trim();
-        public int AnzahlPraktikumszeitraeume => Zeitraeume.Count(z => z.Kategorie == "Praktikum");
-        public int AnzahlUmschulungszeitraeume => Zeitraeume.Count(z => z.Kategorie == "Umschulung");
-        public bool HatZeitraeume => Zeitraeume.Any();
-        public DateTime? FruehesterStart => Zeitraeume.Any() ? Zeitraeume.Min(z => z.Start) : null;
-        public DateTime? SpaetestesEnde => Zeitraeume.Any() ? Zeitraeume.Max(z => z.Ende) : null;
+        // Signatur-Upload
+        public string? SignaturBase64 { get; set; }
+        public string? SignaturDateiname { get; set; }
 
         // Validierungsmethoden
-        public bool IsValid()
+        public bool IstZeitraumGueltig => UmschulungsEnde > Umschulungsbeginn;
+
+        public string GesamtzeitraumFormatiert => $"{Umschulungsbeginn:dd.MM.yyyy} - {UmschulungsEnde:dd.MM.yyyy}";
+
+        // Prüfung auf Überschneidungen
+        public bool HatUeberschneidungen(Zeitraum neuerZeitraum)
         {
-            return !string.IsNullOrWhiteSpace(Nachname) &&
-                   !string.IsNullOrWhiteSpace(Vorname) &&
-                   !string.IsNullOrWhiteSpace(Klasse) &&
-                   Umschulungsbeginn != default &&
-                   HatZeitraeume;
+            return Zeitraeume.Any(z => z.OverlapsWith(neuerZeitraum));
         }
 
-        public List<string> GetValidationErrors()
+        // Automatische Fallback-Zeiträume für komplett leere Konfiguration
+        public List<Zeitraum> GetEffektiveZeitraeume()
         {
-            var errors = new List<string>();
-
-            if (string.IsNullOrWhiteSpace(Nachname))
-                errors.Add("Nachname ist erforderlich");
-            if (string.IsNullOrWhiteSpace(Vorname))
-                errors.Add("Vorname ist erforderlich");
-            if (string.IsNullOrWhiteSpace(Klasse))
-                errors.Add("Klasse/Kurs ist erforderlich");
-            if (Umschulungsbeginn == default)
-                errors.Add("Umschulungsbeginn ist erforderlich");
-            if (!HatZeitraeume)
-                errors.Add("Mindestens ein Zeitraum ist erforderlich");
-
-            // Zeitraum-Überschneidungen prüfen
-            for (int i = 0; i < Zeitraeume.Count; i++)
+            if (Zeitraeume.Any())
             {
-                for (int j = i + 1; j < Zeitraeume.Count; j++)
-                {
-                    if (Zeitraeume[i].OverlapsWith(Zeitraeume[j]))
-                    {
-                        errors.Add($"Zeitraum-Überschneidung: {Zeitraeume[i].ZeitraumFormatiert} und {Zeitraeume[j].ZeitraumFormatiert}");
-                    }
-                }
+                return Zeitraeume.OrderBy(z => z.Start).ToList();
             }
 
-            return errors;
+            // Fallback: Ganzer Zeitraum als Umschulung
+            return new List<Zeitraum>
+            {
+                new Zeitraum
+                {
+                    Kategorie = "Umschulung",
+                    Start = Umschulungsbeginn,
+                    Ende = UmschulungsEnde,
+                    Beschreibung = "Umschulung (automatisch generiert)"
+                }
+            };
         }
 
-        public void SortZeitraeume()
+        // Verfügbare Bundesländer für Dropdown
+        public static Dictionary<string, string> BundeslaenderListe => new()
         {
-            Zeitraeume = Zeitraeume.OrderBy(z => z.Start).ToList();
-        }
+            { "DE-BW", "Baden-Württemberg" },
+            { "DE-BY", "Bayern" },
+            { "DE-BE", "Berlin" },
+            { "DE-BB", "Brandenburg" },
+            { "DE-HB", "Bremen" },
+            { "DE-HH", "Hamburg" },
+            { "DE-HE", "Hessen" },
+            { "DE-MV", "Mecklenburg-Vorpommern" },
+            { "DE-NI", "Niedersachsen" },
+            { "DE-NW", "Nordrhein-Westfalen" },
+            { "DE-RP", "Rheinland-Pfalz" },
+            { "DE-SL", "Saarland" },
+            { "DE-SN", "Sachsen" },
+            { "DE-ST", "Sachsen-Anhalt" },
+            { "DE-SH", "Schleswig-Holstein" },
+            { "DE-TH", "Thüringen" }
+        };
     }
 }
-
-//// Standardmäßig initialisiert mit Werten
-//private Zeitraum? _neuZeitraum;
-//    public Zeitraum NeuZeitraum
-//    {
-//        get
-//        {
-//            if (_neuZeitraum == null)
-//            {
-//                _neuZeitraum = new Zeitraum
-//                {
-//                    Start = Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today,
-//                    Ende = (Umschulungsbeginn != default ? Umschulungsbeginn : DateTime.Today).AddMonths(1)
-//                };
-//            }
-//            return _neuZeitraum;
-//        }
-//        set { _neuZeitraum = value; }
-//    }
-//}
-
-
-
-
-
-/*namespace ASPnet_Automatisierung_Wochennachweise.Models
-{
-    public class UmschulungConfig
-    {
-        public DateTime Umschulungsbeginn { get; set; }
-        public string Nachname { get; set; } = string.Empty;
-        public string Vorname { get; set; } = string.Empty;
-        public string Klasse { get; set; } = string.Empty;
-        public List<Zeitraum> Zeitraeume { get; set; } = new();
-
-        public UmschulungConfig()
-        {
-            // Beispiel: Umschulungsbeginn 29.01.2024
-            Umschulungsbeginn = new DateTime(2024, 1, 29);
-
-            Zeitraeume = new List<Zeitraum>
-                {
-                    // Umschulungsphase 1
-                    new Zeitraum
-                    {
-                        Start = new DateTime(2024, 1, 29),
-                        Ende = new DateTime(2025, 6, 3),
-                        Beschreibung = "Modul PLATZHALTER",
-                        Kategorie = "Umschulung"
-                    },
-                    // Praktikum 1
-                    new Zeitraum
-                    {
-                        Start = new DateTime(2025, 6, 4),
-                        Ende = new DateTime(2025, 10, 17),
-                        Beschreibung = "Praktikum bei SF Tech GmbH",
-                        Kategorie = "Praktikum"
-                    },
-                    // Prüfungsvorbereitung
-                    new Zeitraum
-                    {
-                        Start = new DateTime(2025, 10, 20),
-                        Ende = new DateTime(2025, 11, 28),
-                        Beschreibung = "Prüfungsvorbereitung",
-                        Kategorie = "Umschulung"
-                    },
-                    // Praktikum 2
-                    new Zeitraum
-                    {
-                        Start = new DateTime(2025, 12, 1),
-                        Ende = new DateTime(2026, 1, 27),
-                        Beschreibung = "Praktikum bei SF Tech GmbH",
-                        Kategorie = "Praktikum"
-                    },
-                    // Zeugnisausgabe
-                    new Zeitraum
-                    {
-                        Start = new DateTime(2026, 1, 28),
-                        Ende = new DateTime(2026, 1, 28),
-                        Beschreibung = "Zeugnisausgabe",
-                        Kategorie = "Umschulung"
-                    }
-                };
-        }
-    }
-}*/

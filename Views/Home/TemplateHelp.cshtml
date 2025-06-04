@@ -1,0 +1,404 @@
+﻿@{
+    ViewData["Title"] = "Template-Platzhalter";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="my-4 text-center">
+                <i class="bi bi-file-earmark-word text-primary me-2"></i>
+                Template-Platzhalter Anleitung
+            </h1>
+            <p class="text-center text-muted mb-4">
+                Alle verfügbaren Platzhalter für eigene Word-Templates
+            </p>
+
+            <!-- ÜBERSICHT -->
+            <div class="alert alert-info mb-4">
+                <h5><i class="bi bi-info-circle me-2"></i>Template-System</h5>
+                <p class="mb-2">
+                    Der Wochennachweis-Generator verwendet <strong>Docxtemplater</strong> zur Befüllung von Word-Dokumenten.
+                    Sie können eigene .docx-Templates erstellen und die unten aufgeführten Platzhalter verwenden.
+                </p>
+                <p class="mb-0">
+                    <strong>Syntax:</strong> Alle Platzhalter werden in doppelte geschweifte Klammern gesetzt: <code>{{PLATZHALTER}}</code>
+                </p>
+            </div>
+
+            <!-- HAUPT-PLATZHALTER -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-star me-2"></i>Haupt-Platzhalter
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 25%">Platzhalter</th>
+                                    <th style="width: 35%">Beschreibung</th>
+                                    <th style="width: 40%">Beispiel-Ausgabe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>{{NACHNAME}}</code></td>
+                                    <td>Nachname des Auszubildenden</td>
+                                    <td>Mustermann</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{VORNAME}}</code></td>
+                                    <td>Vorname des Auszubildenden</td>
+                                    <td>Max</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{KLASSE}}</code></td>
+                                    <td>Klasse oder Kurs</td>
+                                    <td>FIAE-2023-A</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{WOCHE}}</code></td>
+                                    <td>Wochennummer seit Umschulungsbeginn</td>
+                                    <td>15</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{KATEGORIE}}</code></td>
+                                    <td>Art des Zeitraums</td>
+                                    <td>Umschulung, Praktikum</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DATUM-PLATZHALTER -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar me-2"></i>Datum-Platzhalter
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 25%">Platzhalter</th>
+                                    <th style="width: 35%">Beschreibung</th>
+                                    <th style="width: 40%">Beispiel-Ausgabe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>{{DATUM}}</code></td>
+                                    <td>Montag der Woche (Wochenbeginn)</td>
+                                    <td>03.06.2024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{UDATUM}}</code></td>
+                                    <td>Samstag der Woche (Wochenende)</td>
+                                    <td>08.06.2024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{MONTAG}}</code></td>
+                                    <td>Datum des Montags</td>
+                                    <td>03.06.2024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{SAMSTAG}}</code></td>
+                                    <td>Datum des Samstags</td>
+                                    <td>08.06.2024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{ZEITRAUM}}</code></td>
+                                    <td>Kompletter Zeitraum der Woche</td>
+                                    <td>03.06.2024 - 08.06.2024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{MONAT}}</code></td>
+                                    <td>Monatsname</td>
+                                    <td>Juni</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{JAHR}}</code></td>
+                                    <td>Aktuelles Jahr</td>
+                                    <td>2024</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{KW}}</code></td>
+                                    <td>Kalenderwoche</td>
+                                    <td>23</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{KALENDERWOCHE}}</code></td>
+                                    <td>Kalenderwoche (zweistellig)</td>
+                                    <td>23</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{AJ}}</code></td>
+                                    <td>Ausbildungsjahr</td>
+                                    <td>2024</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TÄGLICHE EINTRÄGE -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar-week me-2"></i>Tägliche Einträge
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>Wichtiger Hinweis</h6>
+                        <p class="mb-0">
+                            Diese Platzhalter enthalten die tagesspezifischen Beschreibungen oder Feiertage.
+                            Falls ein Tag nicht von einem Zeitraum abgedeckt ist, bleibt der Platzhalter leer.
+                        </p>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 25%">Platzhalter</th>
+                                    <th style="width: 35%">Beschreibung</th>
+                                    <th style="width: 40%">Beispiel-Ausgabe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>{{EINTRAG1}}</code></td>
+                                    <td>Montag - Beschreibung oder Feiertag</td>
+                                    <td>HTML/CSS Grundlagen</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{EINTRAG2}}</code></td>
+                                    <td>Dienstag - Beschreibung oder Feiertag</td>
+                                    <td>JavaScript Einführung</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{EINTRAG3}}</code></td>
+                                    <td>Mittwoch - Beschreibung oder Feiertag</td>
+                                    <td>Feiertag: Tag der Arbeit</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{EINTRAG4}}</code></td>
+                                    <td>Donnerstag - Beschreibung oder Feiertag</td>
+                                    <td>React Komponenten</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{EINTRAG5}}</code></td>
+                                    <td>Freitag - Beschreibung oder Feiertag</td>
+                                    <td>Projektarbeit</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{EINTRAG6}}</code></td>
+                                    <td>Samstag - Beschreibung oder Feiertag (optional)</td>
+                                    <td>Prüfungsvorbereitung</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZUSÄTZLICHE PLATZHALTER -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>Zusätzliche Platzhalter
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 25%">Platzhalter</th>
+                                    <th style="width: 35%">Beschreibung</th>
+                                    <th style="width: 40%">Beispiel-Ausgabe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>{{BESCHREIBUNG}}</code></td>
+                                    <td>Zusammenfassung aller Beschreibungen der Woche</td>
+                                    <td>HTML/CSS Grundlagen, Projektarbeit</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{SIGNATUR}}</code></td>
+                                    <td>Hochgeladene Signatur (Base64)</td>
+                                    <td>[Bild der Signatur]</td>
+                                </tr>
+                                <tr>
+                                    <td><code>{{BUNDESLAND}}</code></td>
+                                    <td>Ausgewähltes Bundesland</td>
+                                    <td>DE-NW</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Signatur-Hinweis</h6>
+                        <p class="mb-0">
+                            Der <code>{{SIGNATUR}}</code> Platzhalter funktioniert nur mit speziellen Docxtemplater-Modulen für Bilder.
+                            Für einfache Templates verwenden Sie stattdessen einen Text-Platzhalter für den Namen.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEMPLATE-ERSTELLUNG -->
+            <div class="card mb-4 shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-word me-2"></i>Eigenes Template erstellen
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6><i class="bi bi-1-circle me-2"></i>Schritt 1: Word-Dokument erstellen</h6>
+                    <ul>
+                        <li>Öffnen Sie Microsoft Word</li>
+                        <li>Erstellen Sie das gewünschte Layout für Ihren Wochennachweis</li>
+                        <li>Fügen Sie Tabellen, Kopfzeilen, Logos etc. hinzu</li>
+                    </ul>
+
+                    <h6 class="mt-4"><i class="bi bi-2-circle me-2"></i>Schritt 2: Platzhalter einfügen</h6>
+                    <ul>
+                        <li>Setzen Sie die Platzhalter aus den obigen Tabellen an die gewünschten Stellen</li>
+                        <li><strong>Wichtig:</strong> Verwenden Sie exakt die Syntax <code>{{PLATZHALTER}}</code></li>
+                        <li>Achten Sie auf korrekte Groß-/Kleinschreibung</li>
+                    </ul>
+
+                    <h6 class="mt-4"><i class="bi bi-3-circle me-2"></i>Schritt 3: Template speichern</h6>
+                    <ul>
+                        <li>Speichern Sie das Dokument als <strong>.docx</strong> Datei</li>
+                        <li>Ersetzen Sie die vorhandene Template-Datei in <code>wwwroot/templates/</code></li>
+                        <li>Dateiname: <code>Wochennachweis_Vorlage.docx</code></li>
+                    </ul>
+
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="bi bi-lightbulb me-2"></i>Tipp</h6>
+                        <p class="mb-0">
+                            Testen Sie Ihr Template, indem Sie den "Docxtemplater testen" Button im Debug-Modus verwenden.
+                            So können Sie schnell überprüfen, ob alle Platzhalter korrekt funktionieren.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BEISPIEL-TEMPLATE -->
+            <div class="card mb-4 shadow-sm border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-code me-2"></i>Beispiel-Template Struktur
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code>WOCHENNACHWEIS
+
+Name: {{VORNAME}} {{NACHNAME}}
+Klasse: {{KLASSE}}
+Woche: {{WOCHE}} (KW {{KW}})
+Zeitraum: {{ZEITRAUM}}
+
+Tätigkeiten:
+┌─────────────┬─────────────────────────────────────┐
+│ Montag      │ {{EINTRAG1}}                        │
+├─────────────┼─────────────────────────────────────┤
+│ Dienstag    │ {{EINTRAG2}}                        │
+├─────────────┼─────────────────────────────────────┤
+│ Mittwoch    │ {{EINTRAG3}}                        │
+├─────────────┼─────────────────────────────────────┤
+│ Donnerstag  │ {{EINTRAG4}}                        │
+├─────────────┼─────────────────────────────────────┤
+│ Freitag     │ {{EINTRAG5}}                        │
+└─────────────┴─────────────────────────────────────┘
+
+Kategorie: {{KATEGORIE}}
+Monat/Jahr: {{MONAT}} {{JAHR}}
+
+Unterschrift: ___________________________</code></pre>
+                </div>
+            </div>
+
+            <!-- NAVIGATION -->
+            <div class="text-center">
+                <a asp-action="Index" class="btn btn-primary btn-lg me-2">
+                    <i class="bi bi-arrow-left me-1"></i>Zurück zum Generator
+                </a>
+                <a asp-action="Help" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-question-circle me-1"></i>Weitere Hilfe
+                </a>
+            </div>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Diese Anleitung bezieht sich auf die aktuelle Version des Generators.
+                    Bei Problemen überprüfen Sie zunächst die korrekte Syntax der Platzhalter.
+                </small>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 Template-Hilfe-Seite geladen');
+
+            // Code-Blöcke klickbar machen für einfaches Kopieren
+            const codeElements = document.querySelectorAll('code');
+            codeElements.forEach(function(codeEl) {
+                codeEl.style.cursor = 'pointer';
+                codeEl.title = 'Klicken zum Kopieren';
+
+                codeEl.addEventListener('click', function() {
+                    navigator.clipboard.writeText(this.textContent).then(function() {
+                        // Feedback geben
+                        const originalBg = codeEl.style.backgroundColor;
+                        codeEl.style.backgroundColor = '#d4edda';
+                        setTimeout(function() {
+                            codeEl.style.backgroundColor = originalBg;
+                        }, 500);
+                    }).catch(function() {
+                        // Fallback bei Fehlern
+                        console.log('Clipboard-API nicht verfügbar');
+                    });
+                });
+            });
+
+            // Smooth scrolling für Anker-Links
+            const anchorLinks = document.querySelectorAll('a[href^="#"]');
+            anchorLinks.forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Template-Download-Button (falls gewünscht)
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Template-Hilfe geladen. Klicken Sie auf Platzhalter zum Kopieren.', 'info');
+            }
+        });
+    </script>
+}

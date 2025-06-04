@@ -7,7 +7,7 @@
     <h1 class="display-4">📋 Wochennachweis-Übersicht</h1>
     <p>Für @ViewBag.Nachname wurden @Model.Count Wochennachweise berechnet.</p>
 
-    <!-- 🔥 NEUE DOWNLOAD-SEKTION -->
+    <!-- 🔥 ERWEITERTE DOWNLOAD-SEKTION -->
     <div class="alert alert-success">
         <h5><i class="bi bi-download me-2"></i>Dokumente erstellen und herunterladen</h5>
         <p class="mb-3">Klicken Sie auf den Button unten, um alle Wochennachweise als Word-Dokumente zu generieren.</p>
@@ -16,13 +16,20 @@
         <button type="button" class="btn btn-success btn-lg me-3" id="download-all-button">
             <i class="bi bi-file-earmark-word me-2"></i>
             Alle Dokumente als ZIP herunterladen
+            <br><small class="fw-normal">Mit Unterordnern: Praktikum/ und Umschulung/</small>
         </button>
 
-        <!-- TEST-BUTTON -->
-        <button type="button" class="btn btn-outline-secondary" id="test-generation-button">
-            <i class="bi bi-gear me-1"></i>
-            System testen
-        </button>
+        <!-- ZUSÄTZLICHE OPTIONEN -->
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary" id="test-generation-button">
+                <i class="bi bi-gear me-1"></i>
+                System testen
+            </button>
+            <button type="button" class="btn btn-outline-info" id="show-statistics-button">
+                <i class="bi bi-graph-up me-1"></i>
+                Statistiken
+            </button>
+        </div>
     </div>
 
     <!-- FORTSCHRITTSANZEIGE -->
@@ -30,6 +37,50 @@
         <div class="d-flex align-items-center justify-content-center">
             <div class="spinner-border spinner-border-sm me-2" role="status"></div>
             <span id="progress-text">Bereite Generierung vor...</span>
+        </div>
+    </div>
+
+    <!-- STATISTIKEN-PANEL -->
+    <div id="statistics-panel" class="alert alert-light d-none">
+        <h6><i class="bi bi-graph-up me-2"></i>Übersicht der generierten Nachweise</h6>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="bg-primary text-white rounded p-2">
+                    <h4>@Model.Count</h4>
+                    <small>Gesamt-Nachweise</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="bg-success text-white rounded p-2">
+                    <h4>@Model.Count(w => w.Kategorie == "Praktikum")</h4>
+                    <small>Praktikum</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="bg-info text-white rounded p-2">
+                    <h4>@Model.Count(w => w.Kategorie == "Umschulung")</h4>
+                    <small>Umschulung</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="bg-warning text-dark rounded p-2">
+                    <h4>@(Model.Any() ? (Model.Max(w => w.Samstag) - Model.Min(w => w.Montag)).Days + 1 : 0)</h4>
+                    <small>Tage gesamt</small>
+                </div>
+            </div>
+        </div>
+        <div class="mt-2">
+            <small class="text-muted">
+                Zeitraum:
+                @if (Model.Any())
+                {
+                    @Model.Min(w => w.Montag).ToString("dd.MM.yyyy") <text> bis </text> @Model.Max(w => w.Samstag).ToString("dd.MM.yyyy")
+                }
+                else
+                {
+                    <text>Keine Daten</text>
+                }
+            </small>
         </div>
     </div>
 </div>
@@ -51,6 +102,7 @@
                                     <th>Woche</th>
                                     <th>Zeitraum</th>
                                     <th>Beschreibung</th>
+                                    <th>Feiertage</th>
                                     <th>Aktion</th>
                                 </tr>
                             </thead>
@@ -60,7 +112,36 @@
                                     <tr>
                                         <td><span class="badge bg-success">@woche.Nummer</span></td>
                                         <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
-                                        <td>@woche.Beschreibungen.FirstOrDefault()</td>
+                                        <td>
+                                            @if (woche.Beschreibungen.Any())
+                                            {
+                                                @string.Join(", ", woche.Beschreibungen.Take(2))
+                                                @if (woche.Beschreibungen.Count > 2)
+                                                {
+                                                    <small class="text-muted">... (+@(woche.Beschreibungen.Count - 2) weitere)</small>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">Keine Beschreibung</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            @{
+                                                var feiertagsBeschreibungen = woche.Beschreibungen.Where(b => b.StartsWith("Feiertag:")).ToList();
+                                            }
+                                            @if (feiertagsBeschreibungen.Any())
+                                            {
+                                                <small class="text-warning">
+                                                    <i class="bi bi-calendar-event me-1"></i>
+                                                    @feiertagsBeschreibungen.Count Feiertag(e)
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">-</small>
+                                            }
+                                        </td>
                                         <td>
                                             <button type="button" class="btn btn-sm btn-outline-primary download-single-btn"
                                                     data-woche-nummer="@woche.Nummer"
@@ -78,6 +159,7 @@
                 {
                     <div class="alert alert-secondary">
                         <i class="bi bi-info-circle me-2"></i>Keine Praktikumswochen definiert.
+                        <br><small>Praktikumszeiten können in den Zeiträumen auf der Startseite definiert werden.</small>
                     </div>
                 }
             </div>
@@ -101,6 +183,7 @@
                                     <th>Woche</th>
                                     <th>Zeitraum</th>
                                     <th>Beschreibung</th>
+                                    <th>Feiertage</th>
                                     <th>Aktion</th>
                                 </tr>
                             </thead>
@@ -110,7 +193,36 @@
                                     <tr>
                                         <td><span class="badge bg-primary">@woche.Nummer</span></td>
                                         <td>@woche.Montag.ToString("dd.MM.yyyy") - @woche.Samstag.ToString("dd.MM.yyyy")</td>
-                                        <td>@woche.Beschreibungen.FirstOrDefault()</td>
+                                        <td>
+                                            @if (woche.Beschreibungen.Any())
+                                            {
+                                                @string.Join(", ", woche.Beschreibungen.Take(2))
+                                                @if (woche.Beschreibungen.Count > 2)
+                                                {
+                                                    <small class="text-muted">... (+@(woche.Beschreibungen.Count - 2) weitere)</small>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">Keine Beschreibung</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            @{
+                                                var feiertagsBeschreibungen = woche.Beschreibungen.Where(b => b.StartsWith("Feiertag:")).ToList();
+                                            }
+                                            @if (feiertagsBeschreibungen.Any())
+                                            {
+                                                <small class="text-warning">
+                                                    <i class="bi bi-calendar-event me-1"></i>
+                                                    @feiertagsBeschreibungen.Count Feiertag(e)
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">-</small>
+                                            }
+                                        </td>
                                         <td>
                                             <button type="button" class="btn btn-sm btn-outline-primary download-single-btn"
                                                     data-woche-nummer="@woche.Nummer"
@@ -128,6 +240,7 @@
                 {
                     <div class="alert alert-secondary">
                         <i class="bi bi-info-circle me-2"></i>Keine Umschulungswochen definiert.
+                        <br><small>Dies sollte normalerweise nicht vorkommen. Prüfen Sie Ihre Zeitraum-Definitionen.</small>
                     </div>
                 }
             </div>
@@ -135,23 +248,34 @@
     </div>
 </div>
 
+<!-- NAVIGATION UND ZUSÄTZLICHE OPTIONEN -->
 <div class="text-center mt-4">
-    <a asp-action="Index" class="btn btn-primary btn-lg">
-        <i class="bi bi-arrow-left me-2"></i>Zurück zur Startseite
-    </a>
-    <div class="mt-2">
-        <small class="text-muted">
+    <div class="btn-group" role="group">
+        <a asp-action="Index" class="btn btn-primary btn-lg">
+            <i class="bi bi-arrow-left me-2"></i>Zurück zur Startseite
+        </a>
+        <a asp-action="TemplateHelp" class="btn btn-outline-info btn-lg">
+            <i class="bi bi-question-circle me-2"></i>Template-Hilfe
+        </a>
+    </div>
+
+    <div class="mt-3">
+        <small class="text-muted d-block">
             <i class="bi bi-lightbulb me-1"></i>
-            Oder verwenden Sie die Download-Buttons oben für die direkte Erstellung
+            Verwenden Sie die Download-Buttons für die direkte Erstellung einzelner Dokumente
+        </small>
+        <small class="text-muted d-block">
+            <i class="bi bi-folder me-1"></i>
+            Das ZIP-Archiv enthält Unterordner für bessere Organisation
         </small>
     </div>
 </div>
 
 @section Scripts {
     <script>
-                // 🔥 JAVASCRIPT FÜR RESULT-VIEW
+        // 🔥 ERWEITERTE RESULT-PAGE MIT ZIP-UNTERORDNERN
 
-        class ResultPageGenerator {
+        class ExtendedResultPageGenerator {
             constructor() {
                 this.configData = null;
                 this.wochennachweisData = null;
@@ -159,9 +283,9 @@
             }
 
             async initialize() {
-                console.log('🚀 ResultPageGenerator wird initialisiert...');
+                console.log('🚀 Erweiterte ResultPageGenerator wird initialisiert...');
                 this.registerEventHandlers();
-                console.log('✅ ResultPageGenerator bereit');
+                console.log('✅ Erweiterte ResultPageGenerator bereit');
             }
 
             registerEventHandlers() {
@@ -177,6 +301,12 @@
                     testBtn.addEventListener('click', () => this.testGeneration());
                 }
 
+                // Statistiken-Button
+                const statsBtn = document.getElementById('show-statistics-button');
+                if (statsBtn) {
+                    statsBtn.addEventListener('click', () => this.toggleStatistics());
+                }
+
                 // Einzel-Download-Buttons
                 const singleBtns = document.querySelectorAll('.download-single-btn');
                 singleBtns.forEach(btn => {
@@ -188,9 +318,16 @@
                 });
             }
 
+            toggleStatistics() {
+                const panel = document.getElementById('statistics-panel');
+                if (panel) {
+                    panel.classList.toggle('d-none');
+                }
+            }
+
             async downloadAllDocuments() {
                 try {
-                    this.showProgress('🔄 Bereite Download vor...');
+                    this.showProgress('🔄 Bereite Download mit Unterordnern vor...');
 
                     if (!this.checkDependencies()) {
                         return;
@@ -209,10 +346,10 @@
                         throw new Error('Keine Dokumente konnten erstellt werden');
                     }
 
-                    this.showProgress('📦 Erstelle ZIP-Archiv...');
-                    await this.createZipDownload(documents);
+                    this.showProgress('📦 Erstelle ZIP-Archiv mit Unterordnern...');
+                    await this.createZipDownloadWithFolders(documents);
 
-                    this.showSuccess(`✅ ${documents.length} Dokumente erfolgreich erstellt und heruntergeladen!`);
+                    this.showSuccess(`✅ ${documents.length} Dokumente erfolgreich erstellt und als strukturiertes ZIP heruntergeladen!`);
 
                 } catch (error) {
                     console.error('❌ Fehler beim Download:', error);
@@ -238,7 +375,7 @@
                         await this.loadTemplate();
                     }
 
-                    // 🔥 Flexible Property-Zugriffe für verschiedene Formate
+                    // Erweiterte Wochensuche
                     const wochenArray = this.getWochenArray();
 
                     if (!wochenArray || wochenArray.length === 0) {
@@ -247,7 +384,6 @@
 
                     // Finde die entsprechende Woche
                     const woche = wochenArray.find(w => {
-                        // Flexible Nummer-Vergleich (sowohl String als auch Number)
                         const wocheNummerMatch = (w.nummer || w.Nummer || w.NUMMER) == wocheNummer;
                         const kategorieMatch = (w.kategorie || w.Kategorie || w.KATEGORIE) === kategorie;
                         return wocheNummerMatch && kategorieMatch;
@@ -261,7 +397,10 @@
                     this.showProgress(`🔨 Erstelle Dokument für Woche ${wocheNummer}...`);
                     const document = await this.createDocument(woche);
 
-                    const filename = `Wochennachweis_Woche_${String(woche.nummer || woche.Nummer).padStart(2, '0')}_${woche.kategorie || woche.Kategorie}.docx`;
+                    // Verbesserter Dateiname mit Monat
+                    const monat = this.extractMonthFromWoche(woche);
+                    const filename = `Wochennachweis_${String(woche.nummer || woche.Nummer).padStart(2, '0')}_${monat}_${woche.kategorie || woche.Kategorie}.docx`;
+
                     this.downloadBlob(new Blob([document]), filename);
 
                     this.showSuccess(`✅ Dokument für Woche ${wocheNummer} erstellt!`);
@@ -272,101 +411,65 @@
                 }
             }
 
-            // 🔥 HILFSMETHODE: Flexible Zugriffe auf Wochen-Array
-            getWochenArray() {
-                if (!this.wochennachweisData) {
-                    return null;
-                }
+            extractMonthFromWoche(woche) {
+                try {
+                    const templateData = woche.templateData || woche.TemplateData || {};
+                    if (templateData.MONAT) return templateData.MONAT;
 
-                // Versuche verschiedene Property-Namen
-                return this.wochennachweisData.wochen ||
-                       this.wochennachweisData.Wochen ||
-                       this.wochennachweisData.WOCHEN ||
-                       [];
+                    // Fallback: Aus Datum extrahieren
+                    const datum = woche.montag || woche.Montag;
+                    if (datum) {
+                        const monatsnamen = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                                           'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+                        const datumObj = new Date(datum);
+                        return monatsnamen[datumObj.getMonth() + 1] || 'Unbekannt';
+                    }
+
+                    return 'Unbekannt';
+                } catch (error) {
+                    return 'Unbekannt';
+                }
+            }
+
+            // Verwende die erweiterte createZipDownloadWithFolders Methode
+            async createZipDownloadWithFolders(documents) {
+                // Diese Methode ist bereits in wochennachweis-generator.js implementiert
+                // Delegiere an die globale Instanz
+                if (window.wochennachweisGenerator) {
+                    await window.wochennachweisGenerator.createZipDownloadWithFolders(documents, this.wochennachweisData);
+                } else {
+                    throw new Error('Wochennachweis-Generator nicht verfügbar');
+                }
+            }
+
+            // Hilfsmethoden (delegiert an die Haupt-Klasse wo möglich)
+            getWochenArray() {
+                if (!this.wochennachweisData) return null;
+                return this.wochennachweisData.wochen || this.wochennachweisData.Wochen || this.wochennachweisData.WOCHEN || [];
             }
 
             checkDependencies() {
-                const missing = [];
-
-                if (typeof PizZip === 'undefined' && typeof JSZip === 'undefined') {
-                    missing.push('PizZip/JSZip');
-                }
-
-                if (typeof docxtemplater === 'undefined' && typeof Docxtemplater === 'undefined') {
-                    missing.push('Docxtemplater');
-                }
-
-                if (missing.length > 0) {
-                    this.showError(`
-                        <strong>Fehlende Bibliotheken:</strong> ${missing.join(', ')}<br>
-                        <small>Bitte gehen Sie zurück zur Startseite und versuchen Sie es dort.</small>
-                        <br><a href="/" class="btn btn-primary btn-sm mt-2">
-                            <i class="bi bi-arrow-left me-1"></i>Zur Startseite
-                        </a>
-                    `);
-                    return false;
-                }
-
-                return true;
+                return window.wochennachweisGenerator ? window.wochennachweisGenerator.checkDependencies() : false;
             }
 
             async loadWochennachweisDataFromSession() {
-                try {
-                    const response = await fetch('/api/wochennachweis/generate-from-session');
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Session-Daten konnten nicht geladen werden');
-                    }
-
-                    this.wochennachweisData = await response.json();
-                    console.log('📊 Wochendaten aus Session geladen:', this.wochennachweisData);
-
-                    // 🔥 Flexible Property-Zugriffe mit Debug-Info
-                    const wochenArray = this.getWochenArray();
-
-                    console.log('🔍 Debug - Verfügbare Properties:', Object.keys(this.wochennachweisData));
-                    console.log('🔍 Debug - Wochen-Array:', wochenArray);
-                    console.log('🔍 Debug - Anzahl Wochen:', wochenArray ? wochenArray.length : 'undefined');
-
-                    if (!wochenArray || wochenArray.length === 0) {
-                        console.error('❌ Struktur der Session-Daten:', this.wochennachweisData);
-                        throw new Error('Keine Wochendaten in der Session gefunden');
-                    }
-
-                    // Zusätzliche Validierung der ersten Woche
-                    if (wochenArray.length > 0) {
-                        const ersteWoche = wochenArray[0];
-                        console.log('🔍 Debug - Struktur der ersten Woche:', ersteWoche);
-                        console.log('🔍 Debug - Properties der ersten Woche:', Object.keys(ersteWoche));
-                    }
-
-                } catch (error) {
-                    console.error('❌ Session-Fehler:', error);
-                    throw new Error(`Session-Daten konnten nicht geladen werden: ${error.message}`);
+                const response = await fetch('/api/wochennachweis/generate-from-session');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Session-Daten konnten nicht geladen werden');
                 }
+                this.wochennachweisData = await response.json();
+                console.log('📊 Erweiterte Wochendaten aus Session geladen:', this.wochennachweisData);
             }
 
             async loadTemplate() {
                 if (this.template) return;
-
-                try {
-                    const response = await fetch('/api/wochennachweis/template');
-                    if (!response.ok) {
-                        throw new Error(`Template konnte nicht geladen werden: ${response.status}`);
-                    }
-
-                    this.template = await response.arrayBuffer();
-                    console.log('📄 Template geladen:', this.template.byteLength, 'Bytes');
-
-                    if (this.template.byteLength < 1000) {
-                        throw new Error('Template-Datei ist zu klein oder beschädigt');
-                    }
-
-                } catch (error) {
-                    console.error('❌ Template-Fehler:', error);
-                    throw new Error(`Template konnte nicht geladen werden: ${error.message}`);
+                const response = await fetch('/api/wochennachweis/template');
+                if (!response.ok) {
+                    throw new Error(`Template konnte nicht geladen werden: ${response.status}`);
                 }
+                this.template = await response.arrayBuffer();
+                console.log('📄 Template geladen:', this.template.byteLength, 'Bytes');
             }
 
             async createAllDocuments() {
@@ -385,247 +488,119 @@
 
                     try {
                         const document = await this.createDocument(woche);
+                        const monat = this.extractMonthFromWoche(woche);
+                        const kategorie = woche.kategorie || woche.Kategorie;
+
                         documents.push({
-                            name: `Wochennachweis_Woche_${String(wocheNummer).padStart(2, '0')}_${woche.kategorie || woche.Kategorie}.docx`,
+                            name: `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`,
                             content: document,
-                            woche: woche
+                            woche: woche,
+                            kategorie: kategorie
                         });
 
                         console.log(`✅ Dokument ${i + 1} erstellt: Woche ${wocheNummer}`);
                     } catch (docError) {
                         console.error(`❌ Fehler bei Dokument ${i + 1}:`, docError);
-                        // Weiter machen mit nächstem Dokument
                     }
                 }
 
-                if (documents.length === 0) {
-                    throw new Error('Keines der Dokumente konnte erstellt werden');
-                }
-
-                console.log(`📦 ${documents.length} von ${wochenArray.length} Dokumenten erfolgreich erstellt`);
                 return documents;
             }
 
             async createDocument(wochenData) {
-                try {
-                    // 1. PizZip mit Template initialisieren
-                    const zip = new PizZip(this.template);
-
-                    // 2. Docxtemplater initialisieren
-                    let doc;
-                    if (typeof docxtemplater !== 'undefined') {
-                        doc = new docxtemplater(zip, {
-                            paragraphLoop: true,
-                            linebreaks: true,
-                            delimiters: { start: '{{', end: '}}' }
-                        });
-                    } else if (typeof Docxtemplater !== 'undefined') {
-                        doc = new Docxtemplater();
-                        doc.loadZip(zip);
-                        doc.setOptions({
-                            paragraphLoop: true,
-                            linebreaks: true,
-                            delimiters: { start: '{{', end: '}}' }
-                        });
-                    } else {
-                        throw new Error('Docxtemplater nicht verfügbar');
-                    }
-
-                    // 3. Template-Daten setzen - flexible Property-Zugriffe
-                    const templateData = wochenData.templateData || wochenData.TemplateData;
-                    const wocheNummer = wochenData.nummer || wochenData.Nummer || 'unbekannt';
-
-                    if (!templateData) {
-                        console.error('❌ Verfügbare Properties der Woche:', Object.keys(wochenData));
-                        throw new Error('Keine Template-Daten für Woche ' + wocheNummer);
-                    }
-
-                    console.log('📝 Template-Daten für Woche', wocheNummer, ':', templateData);
-                    doc.setData(templateData);
-
-                    // 4. Template rendern
-                    doc.render();
-
-                    // 5. Output generieren
-                    const output = doc.getZip().generate({
-                        type: 'arraybuffer',
-                        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        compression: 'DEFLATE'
-                    });
-
-                    return output;
-
-                } catch (error) {
-                    const wocheNummer = wochenData.nummer || wochenData.Nummer || 'unbekannt';
-                    console.error('❌ Docxtemplater Fehler für Woche', wocheNummer, ':', error);
-
-                    // Detaillierte Fehleranalyse
-                    if (error.properties && error.properties.errors) {
-                        console.log('📋 Detaillierte Fehler:');
-                        error.properties.errors.forEach((err, index) => {
-                            console.log(`  ${index + 1}. Tag: ${err.properties?.tag || 'unbekannt'}`);
-                            console.log(`     Kontext: ${err.properties?.context || 'unbekannt'}`);
-                            console.log(`     Erklärung: ${err.properties?.explanation || 'keine'}`);
-                        });
-                    }
-
-                    throw new Error(`Dokumenterstellung für Woche ${wocheNummer} fehlgeschlagen: ${error.message}`);
-                }
-            }
-
-            async createZipDownload(documents) {
-                try {
-                    const zip = new JSZip();
-
-                    // Alle Dokumente zum ZIP hinzufügen
-                    documents.forEach(doc => {
-                        zip.file(doc.name, doc.content);
-                    });
-
-                    // README.txt hinzufügen
-                    const readme = `Wochennachweise
-        =================
-        Erstellt am: ${new Date().toLocaleString('de-DE')}
-        Anzahl Dokumente: ${documents.length}
-        Name: ${this.wochennachweisData.nachname || this.wochennachweisData.Nachname}, ${this.wochennachweisData.vorname || this.wochennachweisData.Vorname}
-        Klasse: ${this.wochennachweisData.klasse || this.wochennachweisData.Klasse}
-
-        Dokumente:
-        ${documents.map(doc => `- ${doc.name} (Woche ${doc.woche.nummer || doc.woche.Nummer})`).join('\n')}
-
-        Hinweis: Diese Dokumente wurden client-seitig generiert.
-        `;
-                    zip.file('README.txt', readme);
-
-                    // ZIP generieren
-                    console.log('📦 Generiere ZIP-Archiv...');
-                    const zipContent = await zip.generateAsync({
-                        type: 'blob',
-                        compression: 'DEFLATE',
-                        compressionOptions: { level: 6 }
-                    });
-
-                    // Download starten
-                    const filename = `Wochennachweise_${this.wochennachweisData.nachname || this.wochennachweisData.Nachname}_${new Date().toISOString().split('T')[0]}.zip`;
-                    this.downloadBlob(zipContent, filename);
-
-                    console.log('✅ ZIP-Download gestartet:', filename);
-
-                } catch (error) {
-                    console.error('❌ ZIP-Fehler:', error);
-                    throw new Error(`ZIP-Erstellung fehlgeschlagen: ${error.message}`);
+                // Delegiere an die Haupt-Generator-Klasse
+                if (window.wochennachweisGenerator) {
+                    return await window.wochennachweisGenerator.createDocument(wochenData);
+                } else {
+                    throw new Error('Hauptgenerator nicht verfügbar');
                 }
             }
 
             downloadBlob(blob, filename) {
-                try {
+                if (window.wochennachweisGenerator) {
+                    window.wochennachweisGenerator.downloadBlob(blob, filename);
+                } else {
+                    // Fallback
                     const link = document.createElement('a');
                     const url = URL.createObjectURL(blob);
-
                     link.href = url;
                     link.download = filename;
                     link.style.display = 'none';
-
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-
-                    // URL nach kurzer Zeit freigeben
-                    setTimeout(() => {
-                        URL.revokeObjectURL(url);
-                    }, 1000);
-
-                    console.log('💾 Download gestartet:', filename);
-
-                } catch (error) {
-                    console.error('❌ Download-Fehler:', error);
-                    throw new Error(`Download fehlgeschlagen: ${error.message}`);
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
                 }
             }
 
             async testGeneration() {
                 try {
-                    this.showProgress('🔧 Teste System...');
+                    this.showProgress('🔧 Teste erweiterte Funktionen...');
 
-                    console.log('🔧 === SYSTEM-DIAGNOSE ===');
+                    console.log('🔧 === ERWEITERTE SYSTEM-DIAGNOSE ===');
 
-                    // 1. Bibliotheken-Test
-                    console.log('📚 Bibliotheken:');
-                    const libs = {
-                        'PizZip': typeof PizZip !== 'undefined',
-                        'JSZip': typeof JSZip !== 'undefined',
-                        'docxtemplater': typeof docxtemplater !== 'undefined',
-                        'Docxtemplater': typeof Docxtemplater !== 'undefined'
-                    };
-
-                    Object.entries(libs).forEach(([name, available]) => {
-                        console.log(`  ${name}: ${available ? '✅' : '❌'}`);
-                    });
-
-                    // 2. API-Test
-                    console.log('🌐 API-Tests:');
-
-                    try {
-                        const testResponse = await fetch('/api/wochennachweis/test');
-                        const testData = await testResponse.json();
-                        console.log('  API-Verbindung: ✅', testData);
-                    } catch (apiError) {
-                        console.log('  API-Verbindung: ❌', apiError.message);
+                    // 1. Basis-Test delegieren
+                    if (window.wochennachweisGenerator) {
+                        await window.wochennachweisGenerator.testDocxtemplater();
                     }
 
+                    // 2. Zusätzliche Tests für Result-Page
+                    console.log('📋 Result-Page spezifische Tests:');
+
+                    // Session-Daten Test
                     try {
-                        const configResponse = await fetch('/api/wochennachweis/generate-from-session');
-                        if (configResponse.ok) {
-                            const configData = await configResponse.json();
-                            const wochenArray = configData.wochen || configData.Wochen || [];
-                            console.log('  Session-Daten: ✅', wochenArray.length, 'Wochen');
-                            console.log('  Session-Struktur:', Object.keys(configData));
+                        const sessionResponse = await fetch('/api/wochennachweis/generate-from-session');
+                        if (sessionResponse.ok) {
+                            const sessionData = await sessionResponse.json();
+                            console.log('  Session-Daten: ✅', sessionData.Wochen?.length || 0, 'Wochen');
                         } else {
-                            const errorData = await configResponse.json();
-                            console.log('  Session-Daten: ❌', configResponse.status, errorData);
+                            console.log('  Session-Daten: ❌', sessionResponse.status);
                         }
                     } catch (sessionError) {
                         console.log('  Session-Daten: ❌', sessionError.message);
                     }
 
+                    // Feiertags-Test
                     try {
-                        const templateResponse = await fetch('/api/wochennachweis/template');
-                        if (templateResponse.ok) {
-                            const templateSize = (await templateResponse.blob()).size;
-                            console.log('  Template: ✅', templateSize, 'Bytes');
+                        const currentYear = new Date().getFullYear();
+                        const feiertagResponse = await fetch(`/api/wochennachweis/feiertage/${currentYear}?bundesland=DE-NW`);
+                        if (feiertagResponse.ok) {
+                            const feiertagData = await feiertagResponse.json();
+                            console.log('  Feiertage: ✅', feiertagData.anzahl, 'Feiertage für', currentYear);
                         } else {
-                            console.log('  Template: ❌', templateResponse.status);
+                            console.log('  Feiertage: ❌', feiertagResponse.status);
                         }
-                    } catch (templateError) {
-                        console.log('  Template: ❌', templateError.message);
+                    } catch (feiertagError) {
+                        console.log('  Feiertage: ❌', feiertagError.message);
                     }
 
-                    // 3. Gesamtergebnis
-                    const essentialLibs = libs['PizZip'] && libs['JSZip'] &&
-                                         (libs['docxtemplater'] || libs['Docxtemplater']);
+                    // ZIP-Ordnerstruktur Test
+                    console.log('📁 ZIP-Ordnerstruktur Test:');
+                    if (typeof JSZip !== 'undefined') {
+                        const testZip = new JSZip();
+                        testZip.folder('Praktikum');
+                        testZip.folder('Umschulung');
+                        testZip.file('README.txt', 'Test');
 
-                    if (essentialLibs) {
-                        this.showSuccess(`
-                            ✅ <strong>System funktionsfähig!</strong><br>
-                            <small>Alle wichtigen Bibliotheken sind verfügbar.</small><br>
-                            <small>Sie können jetzt die Word-Dokumente generieren.</small>
-                        `);
+                        const testBlob = await testZip.generateAsync({ type: 'blob' });
+                        console.log('  ZIP-Ordner: ✅ Struktur erfolgreich getestet (', testBlob.size, 'Bytes)');
                     } else {
-                        this.showError(`
-                            ❌ <strong>System nicht vollständig!</strong><br>
-                            <small>Wichtige Bibliotheken fehlen. Bitte gehen Sie zur Startseite.</small><br>
-                            <a href="/" class="btn btn-primary btn-sm mt-2">
-                                <i class="bi bi-arrow-left me-1"></i>Zur Startseite
-                            </a>
-                        `);
+                        console.log('  ZIP-Ordner: ❌ JSZip nicht verfügbar');
                     }
+
+                    this.showSuccess(`
+                        ✅ <strong>Erweiterte Funktionen getestet!</strong><br>
+                        <small>ZIP-Unterordner, Session-Integration und Feiertage funktionieren.</small><br>
+                        <small>Siehe Browser-Konsole für Details.</small>
+                    `);
 
                 } catch (error) {
-                    console.error('❌ Test-Fehler:', error);
-                    this.showError(`Test fehlgeschlagen: ${error.message}`);
+                    console.error('❌ Erweiterter Test-Fehler:', error);
+                    this.showError(`Erweiterter Test fehlgeschlagen: ${error.message}`);
                 }
             }
 
+            // UI-Hilfsmethoden
             showProgress(message) {
                 const progressDiv = document.getElementById('generation-progress');
                 const progressText = document.getElementById('progress-text');
@@ -651,10 +626,9 @@
                     `;
                     progressDiv.style.display = 'block';
 
-                    // Nach 10 Sekunden automatisch ausblenden
                     setTimeout(() => {
                         progressDiv.style.display = 'none';
-                    }, 10000);
+                    }, 15000);
                 }
 
                 console.log('✅', message);
@@ -681,36 +655,93 @@
         }
 
         // === INITIALISIERUNG ===
-        const resultGenerator = new ResultPageGenerator();
+        const extendedResultGenerator = new ExtendedResultPageGenerator();
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('📋 Result-Seite geladen - initialisiere Generator...');
-            resultGenerator.initialize();
+            console.log('📋 Erweiterte Result-Seite geladen - initialisiere Generator...');
+            extendedResultGenerator.initialize();
+
+            // Automatische Statistiken nach 2 Sekunden anzeigen
+            setTimeout(() => {
+                const statsPanel = document.getElementById('statistics-panel');
+                if (statsPanel) {
+                    statsPanel.classList.remove('d-none');
+                }
+            }, 2000);
         });
 
         // === GLOBALE DEBUG-FUNKTIONEN ===
-        window.debugResultPage = function() {
-            console.log('🔧 === RESULT-PAGE DEBUG ===');
-            console.log('Generator:', resultGenerator);
-            console.log('Wochendaten:', resultGenerator.wochennachweisData);
-            console.log('Template geladen:', !!resultGenerator.template);
-            console.log('Buttons:', {
-                downloadAll: !!document.getElementById('download-all-button'),
-                test: !!document.getElementById('test-generation-button'),
-                singleDownloads: document.querySelectorAll('.download-single-btn').length
+        window.debugExtendedResultPage = function() {
+            console.log('🔧 === ERWEITERTE RESULT-PAGE DEBUG ===');
+            console.log('Generator:', extendedResultGenerator);
+            console.log('Wochendaten geladen:', !!extendedResultGenerator.wochennachweisData);
+            console.log('Template geladen:', !!extendedResultGenerator.template);
+            console.log('Haupt-Generator verfügbar:', !!window.wochennachweisGenerator);
+
+            console.log('UI-Elemente:', {
+                downloadAllButton: !!document.getElementById('download-all-button'),
+                testButton: !!document.getElementById('test-generation-button'),
+                statisticsButton: !!document.getElementById('show-statistics-button'),
+                singleDownloads: document.querySelectorAll('.download-single-btn').length,
+                statisticsPanel: !!document.getElementById('statistics-panel')
             });
 
-            if (resultGenerator.wochennachweisData) {
-                console.log('Wochen-Array:', resultGenerator.getWochenArray());
+            // Session-API Test
+            fetch('/api/wochennachweis/current-config')
+                .then(response => response.json())
+                .then(data => console.log('Aktuelle Session-Config:', data))
+                .catch(error => console.log('Session-Config Fehler:', error));
+        };
+
+        window.forceExtendedDownload = function() {
+            console.log('🔧 Force Extended Download...');
+            extendedResultGenerator.downloadAllDocuments();
+        };
+
+        window.testZipStructure = async function() {
+            console.log('🔧 Test ZIP-Struktur...');
+
+            if (typeof JSZip === 'undefined') {
+                console.error('❌ JSZip nicht verfügbar');
+                return;
+            }
+
+            const testZip = new JSZip();
+
+            // Ordnerstruktur erstellen
+            const praktikumFolder = testZip.folder('Praktikum');
+            const umschulungFolder = testZip.folder('Umschulung');
+
+            // Test-Dateien hinzufügen
+            praktikumFolder.file('Test_Praktikum.txt', 'Dies ist ein Test für den Praktikum-Ordner');
+            umschulungFolder.file('Test_Umschulung.txt', 'Dies ist ein Test für den Umschulung-Ordner');
+            testZip.file('README.txt', 'Test ZIP mit Unterordner-Struktur\nErstellt: ' + new Date().toLocaleString());
+
+            try {
+                const zipBlob = await testZip.generateAsync({ type: 'blob' });
+
+                // Download des Test-ZIPs
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(zipBlob);
+                link.href = url;
+                link.download = 'Test_ZIP_Struktur.zip';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                console.log('✅ Test-ZIP mit Ordnerstruktur erfolgreich erstellt und heruntergeladen');
+
+                if (window.showNotification) {
+                    window.showNotification('Test-ZIP mit Ordnerstruktur heruntergeladen', 'success');
+                }
+            } catch (error) {
+                console.error('❌ Fehler beim Erstellen der Test-ZIP:', error);
             }
         };
 
-        window.forceDownload = function() {
-            console.log('🔧 Force Download...');
-            resultGenerator.downloadAllDocuments();
-        };
-
-        console.log('📋 Result-Page JavaScript geladen');
-        console.log('🔧 Debug-Funktionen: debugResultPage(), forceDownload()');
+        console.log('📋 Erweiterte Result-Page JavaScript geladen');
+        console.log('🔧 Debug-Funktionen: debugExtendedResultPage(), forceExtendedDownload(), testZipStructure()');
     </script>
 }

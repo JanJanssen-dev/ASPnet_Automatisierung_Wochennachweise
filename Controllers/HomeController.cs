@@ -11,107 +11,70 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
     {
         private readonly WochennachweisGenerator _generator;
         private readonly DebugService _debugService;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController(WochennachweisGenerator generator, DebugService debugService)
+        public HomeController(WochennachweisGenerator generator, DebugService debugService, ILogger<HomeController> logger)
         {
             _generator = generator;
             _debugService = debugService;
+            _logger = logger;
         }
 
         public IActionResult Index()
         {
             _debugService.LogController("Home", "Index", "Lade Startseite");
 
-            var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig") ?? new UmschulungConfig();
-
+            var config = GetOrCreateSessionConfig();
             _debugService.LogDebug($"Session-Config geladen: {config.Zeitraeume?.Count ?? 0} Zeiträume");
+
+            // Browser-Cache-Headers für bessere Session-Verwaltung
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
 
             return View(config);
         }
 
         // ================================
-        // 🔧 HILFE-SEITE
+        // 🔧 NEUE TEMPLATE-HILFE-SEITE
         // ================================
-        public IActionResult Help()
+        public IActionResult TemplateHelp()
         {
-            _debugService.LogController("Home", "Help", "Lade Hilfe-Seite");
+            _debugService.LogController("Home", "TemplateHelp", "Lade Template-Hilfe-Seite");
             return View();
         }
 
         // ================================
-        // 🔧 ZEITRAUM HINZUFÜGEN - BEHOBEN
+        // 🔧 RESET-FUNKTION
         // ================================
         [HttpPost]
-        [IgnoreAntiforgeryToken] // Verhindert Cookie-Probleme
-        public IActionResult AddZeitraum(UmschulungConfig model)
+        [IgnoreAntiforgeryToken]
+        public IActionResult Reset()
         {
-            _debugService.LogController("Home", "AddZeitraum", "POST empfangen");
-            _debugService.LogForm("AddZeitraum", $"Kategorie: {model.NeuZeitraum?.Kategorie}");
+            _debugService.LogController("Home", "Reset", "Session wird zurückgesetzt");
 
             try
             {
-                // Session-Config laden
-                var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig") ?? new UmschulungConfig();
+                // Session komplett leeren
+                HttpContext.Session.Clear();
 
-                _debugService.LogDebug($"Aktuelle Config: {config.Zeitraeume?.Count ?? 0} Zeiträume");
+                // Zusätzliche Cache-Headers setzen
+                Response.Headers["Clear-Site-Data"] = "\"cache\", \"storage\"";
+                Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
 
-                // Grunddaten übernehmen (falls in Session vorhanden)
-                if (string.IsNullOrEmpty(config.Nachname) && !string.IsNullOrEmpty(model.Nachname))
-                {
-                    config.Nachname = model.Nachname;
-                    config.Vorname = model.Vorname;
-                    config.Klasse = model.Klasse;
-                    config.Umschulungsbeginn = model.Umschulungsbeginn;
-                    _debugService.LogDebug("Grunddaten aus Formular übernommen");
-                }
+                _debugService.LogDebug("Session erfolgreich zurückgesetzt");
 
-                // Neuen Zeitraum validieren
-                if (model.NeuZeitraum == null)
-                {
-                    _debugService.LogDebug("ERROR: NeuZeitraum ist null");
-                    TempData["StatusMessage"] = "Fehler: Zeitraum-Daten sind ungültig.";
-                    TempData["StatusMessageType"] = "danger";
-                    return RedirectToAction("Index");
-                }
-
-                // Datum-Validierung
-                if (model.NeuZeitraum.Ende < model.NeuZeitraum.Start)
-                {
-                    _debugService.LogDebug("ERROR: Enddatum vor Startdatum");
-                    TempData["StatusMessage"] = "Das Enddatum muss nach dem Startdatum liegen.";
-                    TempData["StatusMessageType"] = "danger";
-                    return RedirectToAction("Index");
-                }
-
-                // Zeitraum hinzufügen
-                config.Zeitraeume.Add(new Zeitraum
-                {
-                    Kategorie = model.NeuZeitraum.Kategorie,
-                    Start = model.NeuZeitraum.Start,
-                    Ende = model.NeuZeitraum.Ende,
-                    Beschreibung = model.NeuZeitraum.Beschreibung
-                });
-
-                _debugService.LogDebug($"Zeitraum hinzugefügt: {model.NeuZeitraum.Kategorie} ({model.NeuZeitraum.Start:dd.MM.yyyy} - {model.NeuZeitraum.Ende:dd.MM.yyyy})");
-
-                // Session aktualisieren
-                HttpContext.Session.Set("CurrentConfig", config);
-
-                // Erfolg
-                TempData["StatusMessage"] = $"Zeitraum '{model.NeuZeitraum.Kategorie}' erfolgreich hinzugefügt.";
+                TempData["StatusMessage"] = "Alle Daten wurden erfolgreich zurückgesetzt.";
                 TempData["StatusMessageType"] = "success";
-                TempData["CloseModal"] = "true"; // Signal für Modal-Schließung
-
-                _debugService.LogController("Home", "AddZeitraum", "SUCCESS - Zeitraum hinzugefügt");
 
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                _debugService.LogDebug($"ERROR in AddZeitraum: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"❌ AddZeitraum Exception: {ex}");
+                _debugService.LogDebug($"ERROR bei Reset: {ex.Message}");
+                _logger.LogError(ex, "Fehler beim Zurücksetzen der Session");
 
-                TempData["StatusMessage"] = $"Fehler beim Hinzufügen: {ex.Message}";
+                TempData["StatusMessage"] = $"Fehler beim Zurücksetzen: {ex.Message}";
                 TempData["StatusMessageType"] = "danger";
 
                 return RedirectToAction("Index");
@@ -119,20 +82,79 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         }
 
         // ================================
-        // 🔧 ZEITRAUM LÖSCHEN - BEHOBEN
+        // 🔧 INLINE ZEITRAUM HINZUFÜGEN (NEUER ANSATZ)
         // ================================
         [HttpPost]
-        [IgnoreAntiforgeryToken] // Verhindert Cookie-Probleme
-        public IActionResult DeleteZeitraum(int index)
+        [IgnoreAntiforgeryToken]
+        public IActionResult AddZeitraumInline(UmschulungConfig model)
         {
-            _debugService.LogController("Home", "DeleteZeitraum", $"Index: {index}");
-            _debugService.LogForm("DeleteZeitraum", $"Lösche Index: {index}");
+            _debugService.LogController("Home", "AddZeitraumInline", "Inline-Zeitraum hinzufügen");
+            _debugService.LogForm("AddZeitraumInline", $"Kategorie: {model.NeuerZeitraum?.Kategorie}");
 
             try
             {
-                var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig") ?? new UmschulungConfig();
+                var config = GetOrCreateSessionConfig();
 
-                _debugService.LogDebug($"Aktuelle Zeiträume: {config.Zeitraeume?.Count ?? 0}");
+                // Grunddaten aus Formular übernehmen/aktualisieren
+                UpdateConfigFromModel(config, model);
+
+                // Neuen Zeitraum validieren
+                if (model.NeuerZeitraum == null)
+                {
+                    return Json(new { success = false, message = "Zeitraum-Daten sind ungültig." });
+                }
+
+                var neuerZeitraum = model.NeuerZeitraum;
+
+                // Validierungen
+                var validationResult = ValidateZeitraum(neuerZeitraum, config);
+                if (!validationResult.isValid)
+                {
+                    return Json(new { success = false, message = validationResult.errorMessage });
+                }
+
+                // Zeitraum hinzufügen
+                config.Zeitraeume.Add(new Zeitraum
+                {
+                    Kategorie = neuerZeitraum.Kategorie,
+                    Start = neuerZeitraum.Start,
+                    Ende = neuerZeitraum.Ende,
+                    Beschreibung = neuerZeitraum.Beschreibung
+                });
+
+                // Session aktualisieren
+                HttpContext.Session.Set("CurrentConfig", config);
+
+                _debugService.LogDebug($"Zeitraum hinzugefügt: {neuerZeitraum.Kategorie} ({neuerZeitraum.Start:dd.MM.yyyy} - {neuerZeitraum.Ende:dd.MM.yyyy})");
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Zeitraum '{neuerZeitraum.Kategorie}' erfolgreich hinzugefügt.",
+                    zeitraeumeCount = config.Zeitraeume.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                _debugService.LogDebug($"ERROR in AddZeitraumInline: {ex.Message}");
+                _logger.LogError(ex, "Fehler beim Hinzufügen des Zeitraums");
+
+                return Json(new { success = false, message = $"Fehler: {ex.Message}" });
+            }
+        }
+
+        // ================================
+        // 🔧 ZEITRAUM LÖSCHEN - VERBESSERT
+        // ================================
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult DeleteZeitraum(int index)
+        {
+            _debugService.LogController("Home", "DeleteZeitraum", $"Index: {index}");
+
+            try
+            {
+                var config = GetOrCreateSessionConfig();
 
                 if (config.Zeitraeume != null && index >= 0 && index < config.Zeitraeume.Count)
                 {
@@ -148,8 +170,8 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 }
                 else
                 {
-                    _debugService.LogDebug($"ERROR: Ungültiger Index {index}");
-                    TempData["StatusMessage"] = "Zeitraum konnte nicht gelöscht werden.";
+                    _debugService.LogDebug($"ERROR: Ungültiger Index {index} bei {config.Zeitraeume?.Count ?? 0} Zeiträumen");
+                    TempData["StatusMessage"] = "Zeitraum konnte nicht gelöscht werden - ungültiger Index.";
                     TempData["StatusMessageType"] = "danger";
                 }
 
@@ -158,7 +180,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
             catch (Exception ex)
             {
                 _debugService.LogDebug($"ERROR in DeleteZeitraum: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"❌ DeleteZeitraum Exception: {ex}");
+                _logger.LogError(ex, "Fehler beim Löschen des Zeitraums");
 
                 TempData["StatusMessage"] = $"Fehler beim Löschen: {ex.Message}";
                 TempData["StatusMessageType"] = "danger";
@@ -168,10 +190,104 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         }
 
         // ================================
-        // 🔧 WOCHENNACHWEISE GENERIEREN - BEHOBEN
+        // 🔧 SIGNATUR-UPLOAD
         // ================================
         [HttpPost]
-        [IgnoreAntiforgeryToken] // Verhindert Cookie-Probleme
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UploadSignatur(IFormFile signaturFile)
+        {
+            _debugService.LogController("Home", "UploadSignatur", $"Datei: {signaturFile?.FileName}");
+
+            try
+            {
+                if (signaturFile == null || signaturFile.Length == 0)
+                {
+                    return Json(new { success = false, message = "Keine Datei ausgewählt." });
+                }
+
+                // Validierung: Nur Bilder erlaubt
+                var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png" };
+                if (!allowedTypes.Contains(signaturFile.ContentType.ToLower()))
+                {
+                    return Json(new { success = false, message = "Nur JPG und PNG Dateien sind erlaubt." });
+                }
+
+                // Größenlimit: 2MB
+                if (signaturFile.Length > 2 * 1024 * 1024)
+                {
+                    return Json(new { success = false, message = "Datei ist zu groß. Maximum 2MB erlaubt." });
+                }
+
+                // In Base64 konvertieren
+                using var memoryStream = new MemoryStream();
+                await signaturFile.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+                var base64String = Convert.ToBase64String(fileBytes);
+
+                // In Session speichern
+                var config = GetOrCreateSessionConfig();
+                config.SignaturBase64 = base64String;
+                config.SignaturDateiname = signaturFile.FileName;
+                HttpContext.Session.Set("CurrentConfig", config);
+
+                _debugService.LogDebug($"Signatur hochgeladen: {signaturFile.FileName} ({fileBytes.Length} Bytes)");
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Signatur erfolgreich hochgeladen.",
+                    filename = signaturFile.FileName
+                });
+            }
+            catch (Exception ex)
+            {
+                _debugService.LogDebug($"ERROR in UploadSignatur: {ex.Message}");
+                _logger.LogError(ex, "Fehler beim Upload der Signatur");
+
+                return Json(new { success = false, message = $"Upload-Fehler: {ex.Message}" });
+            }
+        }
+
+        // ================================
+        // 🔧 ÜBERSCHNEIDUNGS-PRÜFUNG API
+        // ================================
+        [HttpPost]
+        public IActionResult CheckUeberschneidung([FromBody] Zeitraum zeitraum)
+        {
+            try
+            {
+                var config = GetOrCreateSessionConfig();
+                var hasOverlap = config.HatUeberschneidungen(zeitraum);
+
+                if (hasOverlap)
+                {
+                    var overlappingZeitraeume = config.Zeitraeume
+                        .Where(z => z.OverlapsWith(zeitraum))
+                        .Select(z => $"{z.Kategorie} ({z.Start:dd.MM.yyyy} - {z.Ende:dd.MM.yyyy})")
+                        .ToList();
+
+                    return Json(new
+                    {
+                        hasOverlap = true,
+                        message = "Überschneidung gefunden!",
+                        overlappingPeriods = overlappingZeitraeume
+                    });
+                }
+
+                return Json(new { hasOverlap = false });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler bei Überschneidungsprüfung");
+                return Json(new { hasOverlap = false, error = ex.Message });
+            }
+        }
+
+        // ================================
+        // 🔧 WOCHENNACHWEISE GENERIEREN - VERBESSERT
+        // ================================
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
         public IActionResult Generate(UmschulungConfig model)
         {
             _debugService.LogController("Home", "Generate", "POST empfangen");
@@ -179,28 +295,16 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
 
             try
             {
-                // Session-Config laden und mit Formular-Daten mergen
-                var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig") ?? new UmschulungConfig();
+                var config = GetOrCreateSessionConfig();
 
                 // Grunddaten aus Formular übernehmen
-                config.Nachname = model.Nachname;
-                config.Vorname = model.Vorname;
-                config.Klasse = model.Klasse;
-                config.Umschulungsbeginn = model.Umschulungsbeginn;
-
-                _debugService.LogDebug($"Generate-Config: {config.Nachname} {config.Vorname}, {config.Zeitraeume?.Count ?? 0} Zeiträume");
+                UpdateConfigFromModel(config, model);
 
                 // Validierung
-                if (string.IsNullOrEmpty(config.Nachname) || string.IsNullOrEmpty(config.Vorname))
+                var validationResult = ValidateGenerateConfig(config);
+                if (!validationResult.isValid)
                 {
-                    TempData["StatusMessage"] = "Bitte alle Pflichtfelder ausfüllen.";
-                    TempData["StatusMessageType"] = "danger";
-                    return RedirectToAction("Index");
-                }
-
-                if (config.Zeitraeume == null || !config.Zeitraeume.Any())
-                {
-                    TempData["StatusMessage"] = "Bitte mindestens einen Zeitraum hinzufügen.";
+                    TempData["StatusMessage"] = validationResult.errorMessage;
                     TempData["StatusMessageType"] = "danger";
                     return RedirectToAction("Index");
                 }
@@ -208,18 +312,21 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
                 // Session aktualisieren
                 HttpContext.Session.Set("CurrentConfig", config);
 
-                // Wochennachweise generieren (für Preview)
+                // Wochennachweise generieren
                 var wochennachweise = _generator.GenerateWochennachweiseData(config);
 
                 _debugService.LogController("Home", "Generate", $"SUCCESS - {wochennachweise.Count} Wochennachweise generiert");
 
                 ViewBag.Nachname = config.Nachname;
+                ViewBag.GeneratedCount = wochennachweise.Count;
+                ViewBag.HasZeitraeume = config.Zeitraeume.Any();
+
                 return View("Result", wochennachweise);
             }
             catch (Exception ex)
             {
                 _debugService.LogDebug($"ERROR in Generate: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"❌ Generate Exception: {ex}");
+                _logger.LogError(ex, "Fehler bei der Generierung");
 
                 TempData["StatusMessage"] = $"Fehler bei der Generierung: {ex.Message}";
                 TempData["StatusMessageType"] = "danger";
@@ -229,17 +336,98 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         }
 
         // ================================
-        // 🔧 PRIVACY - STANDARD
+        // 🔧 HELPER METHODS
         // ================================
+        private UmschulungConfig GetOrCreateSessionConfig()
+        {
+            var config = HttpContext.Session.Get<UmschulungConfig>("CurrentConfig");
+
+            if (config == null)
+            {
+                config = new UmschulungConfig();
+                HttpContext.Session.Set("CurrentConfig", config);
+                _debugService.LogDebug("Neue Session-Config erstellt");
+            }
+
+            return config;
+        }
+
+        private void UpdateConfigFromModel(UmschulungConfig config, UmschulungConfig model)
+        {
+            if (!string.IsNullOrEmpty(model.Nachname))
+                config.Nachname = model.Nachname;
+
+            if (!string.IsNullOrEmpty(model.Vorname))
+                config.Vorname = model.Vorname;
+
+            if (!string.IsNullOrEmpty(model.Klasse))
+                config.Klasse = model.Klasse;
+
+            if (!string.IsNullOrEmpty(model.Bundesland))
+                config.Bundesland = model.Bundesland;
+
+            if (model.Umschulungsbeginn != default)
+                config.Umschulungsbeginn = model.Umschulungsbeginn;
+
+            if (model.UmschulungsEnde != default)
+                config.UmschulungsEnde = model.UmschulungsEnde;
+        }
+
+        private (bool isValid, string errorMessage) ValidateZeitraum(Zeitraum zeitraum, UmschulungConfig config)
+        {
+            // Basis-Validierung
+            if (string.IsNullOrEmpty(zeitraum.Kategorie))
+                return (false, "Kategorie ist erforderlich.");
+
+            if (string.IsNullOrEmpty(zeitraum.Beschreibung))
+                return (false, "Beschreibung ist erforderlich.");
+
+            if (zeitraum.Ende <= zeitraum.Start)
+                return (false, "Das Enddatum muss nach dem Startdatum liegen.");
+
+            // Überschneidungs-Validierung
+            if (config.HatUeberschneidungen(zeitraum))
+            {
+                var overlapping = config.Zeitraeume.First(z => z.OverlapsWith(zeitraum));
+                return (false, $"Überschneidung mit '{overlapping.Kategorie}' ({overlapping.Start:dd.MM.yyyy} - {overlapping.Ende:dd.MM.yyyy}). Pro Tag ist nur ein Zeitraum erlaubt.");
+            }
+
+            return (true, "");
+        }
+
+        private (bool isValid, string errorMessage) ValidateGenerateConfig(UmschulungConfig config)
+        {
+            if (string.IsNullOrEmpty(config.Nachname))
+                return (false, "Nachname ist erforderlich.");
+
+            if (string.IsNullOrEmpty(config.Vorname))
+                return (false, "Vorname ist erforderlich.");
+
+            if (string.IsNullOrEmpty(config.Klasse))
+                return (false, "Klasse ist erforderlich.");
+
+            if (!config.IstZeitraumGueltig)
+                return (false, "Das Ende der Umschulung muss nach dem Beginn liegen.");
+
+            // Keine Zeiträume ist OK - Fallback wird verwendet
+            return (true, "");
+        }
+
+        // ================================
+        // 🔧 STANDARD-ACTIONS
+        // ================================
+        public IActionResult Help()
+        {
+            _debugService.LogController("Home", "Help", "Lade Hilfe-Seite");
+            return View();
+        }
+
         public IActionResult Privacy()
         {
             _debugService.LogController("Home", "Privacy", "Lade Datenschutz-Seite");
             return View();
         }
 
-        // ================================
-        // 🔧 ERROR HANDLING
-        // ================================
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

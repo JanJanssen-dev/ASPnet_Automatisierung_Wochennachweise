@@ -1,4 +1,4 @@
-﻿// Client-seitige Wochennachweis-Generierung
+﻿// Client-seitige Wochennachweis-Generierung - ERWEITERTE VERSION
 class ClientWochennachweisGenerator {
     constructor() {
         this.template = null;
@@ -19,7 +19,7 @@ class ClientWochennachweisGenerator {
             console.error('❌ Fehler beim Vorab-Laden des Templates:', error);
         }
 
-        // KORRIGIERTE Bibliotheken-Prüfung
+        // WICHTIG: Bibliotheken-Prüfung UNVERÄNDERT - NICHT MODIFIZIEREN!
         const missingLibs = [];
 
         // PizZip prüfen (auch bekannt als JSZip in manchen Versionen)
@@ -75,9 +75,9 @@ class ClientWochennachweisGenerator {
             // Dokument erstellen
             const document = await this.createDocument(woche);
 
-            // KORRIGIERTER DATEINAME: NR_Monat_Kategorie
+            // VERBESSERTE DATEINAMENS-LOGIK
             const wocheNummer = woche.nummer || woche.Nummer || 'Unbekannt';
-            const monat = woche.templateData?.MONAT || woche.TemplateData?.MONAT || 'Unbekannt';
+            const monat = this.getMonatFromTemplateData(woche);
             const kategorie = woche.kategorie || woche.Kategorie || 'Sonstige';
             const filename = `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`;
 
@@ -151,8 +151,8 @@ class ClientWochennachweisGenerator {
                 try {
                     const document = await this.createDocument(woche);
 
-                    // KORRIGIERTER DATEINAME: NR_Monat_Kategorie
-                    const monat = woche.templateData?.MONAT || woche.TemplateData?.MONAT || 'Unbekannt';
+                    // VERBESSERTE DATEINAMENS-LOGIK
+                    const monat = this.getMonatFromTemplateData(woche);
                     const kategorie = woche.kategorie || woche.Kategorie || 'Sonstige';
                     const filename = `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`;
 
@@ -173,10 +173,10 @@ class ClientWochennachweisGenerator {
             }
 
             // 5. ZIP erstellen und downloaden
-            this.showProgress('📦 Erstelle ZIP-Archiv...');
-            await this.createZipDownload(documents, wochennachweisData);
+            this.showProgress('📦 Erstelle ZIP-Archiv mit Unterordnern...');
+            await this.createZipDownloadWithFolders(documents, wochennachweisData);
 
-            this.showSuccess(`✅ ${documents.length} Dokumente erfolgreich erstellt!`);
+            this.showSuccess(`✅ ${documents.length} Dokumente erfolgreich erstellt und als ZIP heruntergeladen!`);
 
             // Zusätzlich Einzeldownload-Buttons anzeigen
             this.showDownloadButtons(documents);
@@ -187,6 +187,26 @@ class ClientWochennachweisGenerator {
         } finally {
             this.isGenerating = false;
         }
+    }
+
+    // HILFSMETHODE: Monat aus Template-Daten extrahieren
+    getMonatFromTemplateData(woche) {
+        const templateData = woche.templateData || woche.TemplateData || {};
+
+        // Prüfe verschiedene mögliche Monat-Felder
+        if (templateData.MONAT) return templateData.MONAT;
+        if (templateData.monat) return templateData.monat;
+
+        // Fallback: Aus Datum extrahieren
+        const datum = woche.montag || woche.Montag;
+        if (datum) {
+            const monatsnamen = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+            const datumObj = new Date(datum);
+            return monatsnamen[datumObj.getMonth() + 1] || 'Unbekannt';
+        }
+
+        return 'Unbekannt';
     }
 
     // HILFSMETHODE: Flexible Zugriffe auf Wochen-Array
@@ -205,23 +225,25 @@ class ClientWochennachweisGenerator {
     getConfigFromForm() {
         return {
             umschulungsbeginn: document.getElementById('Umschulungsbeginn')?.value || '',
+            umschulungsEnde: document.getElementById('UmschulungsEnde')?.value || '',
             nachname: document.getElementById('Nachname')?.value || '',
             vorname: document.getElementById('Vorname')?.value || '',
             klasse: document.getElementById('Klasse')?.value || '',
+            bundesland: document.getElementById('Bundesland')?.value || 'DE-NW',
             zeitraeume: this.getZeitraeume()
         };
     }
 
     getZeitraeume() {
         const zeitraeume = [];
-        const tableRows = document.querySelectorAll('table tbody tr');
+        const tableRows = document.querySelectorAll('#zeitraeume-tbody tr[data-index]');
 
         tableRows.forEach(row => {
             const cells = row.querySelectorAll('td');
             if (cells.length >= 4) {
                 // Badge-Text extrahieren
                 const kategorieBadge = cells[0].querySelector('.badge');
-                const kategorie = kategorieBadge ? kategorieBadge.textContent.trim() : cells[0].textContent.trim();
+                const kategorie = kategorieBadge ? kategorieBadge.textContent.trim().replace(/.*\s/, '') : cells[0].textContent.trim();
 
                 zeitraeume.push({
                     kategorie: kategorie,
@@ -250,11 +272,7 @@ class ClientWochennachweisGenerator {
             return false;
         }
 
-        if (!config.zeitraeume || config.zeitraeume.length === 0) {
-            this.showError('Bitte mindestens einen Zeitraum hinzufügen!');
-            return false;
-        }
-
+        // Zeiträume sind optional - Fallback wird verwendet
         return true;
     }
 
@@ -262,7 +280,7 @@ class ClientWochennachweisGenerator {
         try {
             this.showProgress('🔧 Teste Docxtemplater...');
 
-            // 1. Bibliotheken prüfen
+            // 1. Bibliotheken prüfen - UNVERÄNDERT
             if (typeof PizZip === 'undefined') {
                 this.showError('PizZip-Bibliothek nicht geladen!');
                 return false;
@@ -312,7 +330,7 @@ class ClientWochennachweisGenerator {
             );
 
             try {
-                // 3. Docxtemplater verwenden
+                // 3. Docxtemplater verwenden - UNVERÄNDERT
                 const doc = new docxtemplater();
                 doc.loadZip(zip);
                 doc.setOptions({
@@ -350,19 +368,19 @@ class ClientWochennachweisGenerator {
 
     async createDocument(wochenData) {
         try {
-            // 1. PizZip-Instanz mit dem Template erstellen
+            // 1. PizZip-Instanz mit dem Template erstellen - UNVERÄNDERT
             const zip = new PizZip(this.template);
 
-            // 2. Docxtemplater initialisieren
+            // 2. Docxtemplater initialisieren - UNVERÄNDERT
             const doc = new docxtemplater();
             doc.loadZip(zip);
 
-            // 3. Optionen setzen - WICHTIG: überprüfe deine Template-Delimiters!
+            // 3. Optionen setzen - UNVERÄNDERT
             doc.setOptions({
                 paragraphLoop: true,
                 linebreaks: true,
                 delimiters: {
-                    start: '{{',  // Stellen Sie sicher, dass diese mit Ihrem Template übereinstimmen
+                    start: '{{',
                     end: '}}'
                 }
             });
@@ -371,12 +389,12 @@ class ClientWochennachweisGenerator {
             const templateData = wochenData.templateData || wochenData.TemplateData || {};
             doc.setData(templateData);
 
-            // 5. Template rendern
+            // 5. Template rendern - UNVERÄNDERT
             doc.render();
 
-            // 6. Output generieren
+            // 6. Output generieren - UNVERÄNDERT
             const output = doc.getZip().generate({
-                type: 'arraybuffer', // Wichtig für den Download
+                type: 'arraybuffer',
                 mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 compression: 'DEFLATE'
             });
@@ -399,30 +417,41 @@ class ClientWochennachweisGenerator {
         }
     }
 
-    // KORRIGIERTE ZIP-ERSTELLUNG MIT ORDNERSTRUKTUR
-    async createZipDownload(documents, metaData) {
+    // 🔥 NEUE METHODE: ZIP MIT UNTERORDNERN ERSTELLEN
+    async createZipDownloadWithFolders(documents, metaData) {
         try {
             const zip = new JSZip();
 
-            // Dokumente nach Kategorien sortieren und in Ordner ablegen
-            const kategorien = {};
+            // Dokumente nach Kategorien sortieren
+            const kategorien = {
+                'Praktikum': [],
+                'Umschulung': [],
+                'Sonstige': []
+            };
+
             documents.forEach(doc => {
                 const kategorie = doc.kategorie || 'Sonstige';
-                if (!kategorien[kategorie]) {
-                    kategorien[kategorie] = [];
+                if (kategorien[kategorie]) {
+                    kategorien[kategorie].push(doc);
+                } else {
+                    kategorien['Sonstige'].push(doc);
                 }
-                kategorien[kategorie].push(doc);
             });
 
             // Für jede Kategorie einen Ordner erstellen
             Object.keys(kategorien).forEach(kategorie => {
-                // Folder erstellen (wichtig für manche JSZip-Versionen)
-                zip.folder(kategorie);
+                const docs = kategorien[kategorie];
+                if (docs.length > 0) {
+                    console.log(`📁 Erstelle Ordner '${kategorie}' mit ${docs.length} Dokumenten`);
 
-                // Dokumente in den Ordner legen
-                kategorien[kategorie].forEach(doc => {
-                    zip.file(`${kategorie}/${doc.name}`, doc.content);
-                });
+                    // Ordner explizit erstellen (wichtig für manche JSZip-Versionen)
+                    zip.folder(kategorie);
+
+                    // Dokumente in den entsprechenden Ordner legen
+                    docs.forEach(doc => {
+                        zip.file(`${kategorie}/${doc.name}`, doc.content);
+                    });
+                }
             });
 
             // README.txt in Root des ZIPs
@@ -430,30 +459,66 @@ class ClientWochennachweisGenerator {
             const vorname = metaData.vorname || metaData.Vorname || 'Unbekannt';
             const klasse = metaData.klasse || metaData.Klasse || 'Unbekannt';
 
-            const readme = `Wochennachweise
-=================
+            const readme = `Wochennachweise - ${nachname}, ${vorname}
+${'='.repeat(50)}
+
 Erstellt am: ${new Date().toLocaleString('de-DE')}
 Anzahl Dokumente: ${documents.length}
 Name: ${nachname}, ${vorname}
 Klasse: ${klasse}
 
 Ordnerstruktur:
-${Object.keys(kategorien).map(kat =>
-                `- ${kat}/ (${kategorien[kat].length} Dokumente)`
-            ).join('\n')}
+${Object.keys(kategorien).map(kat => {
+                const count = kategorien[kat].length;
+                return count > 0 ? `📁 ${kat}/ (${count} Dokumente)` : null;
+            }).filter(Boolean).join('\n')}
 
 Dokumente nach Kategorien:
-${Object.keys(kategorien).map(kat =>
-                `\n${kat}:\n${kategorien[kat].map(doc => `  - ${doc.name}`).join('\n')}`
-            ).join('')}
+${Object.keys(kategorien).map(kat => {
+                const docs = kategorien[kat];
+                if (docs.length === 0) return null;
+                return `\n📂 ${kat}:\n${docs.map(doc => `   📄 ${doc.name}`).join('\n')}`;
+            }).filter(Boolean).join('')}
 
-Hinweis: Diese Dokumente wurden client-seitig generiert.
-Alle Daten wurden lokal in Ihrem Browser verarbeitet.
-Keine personenbezogenen Daten wurden an externe Server übertragen.
+Hinweise:
+- Diese Dokumente wurden client-seitig generiert
+- Alle Daten wurden lokal in Ihrem Browser verarbeitet
+- Keine personenbezogenen Daten wurden an externe Server übertragen
+- Bei Fragen zur Verwendung siehe Template-Hilfe im Generator
+
+Generator-Version: ${new Date().getFullYear()}.${new Date().getMonth() + 1}
+Erstellt mit: ASP.NET Core Wochennachweis-Generator
 `;
             zip.file('README.txt', readme);
 
+            // Zusätzliche Metadaten-Datei
+            const metadataJson = {
+                erstellt: new Date().toISOString(),
+                person: {
+                    nachname: nachname,
+                    vorname: vorname,
+                    klasse: klasse
+                },
+                statistik: {
+                    gesamtDokumente: documents.length,
+                    praktikum: kategorien['Praktikum'].length,
+                    umschulung: kategorien['Umschulung'].length,
+                    sonstige: kategorien['Sonstige'].length
+                },
+                kategorien: Object.keys(kategorien).reduce((acc, kat) => {
+                    if (kategorien[kat].length > 0) {
+                        acc[kat] = kategorien[kat].map(doc => ({
+                            dateiname: doc.name,
+                            wochenNummer: doc.woche.nummer || doc.woche.Nummer
+                        }));
+                    }
+                    return acc;
+                }, {})
+            };
+            zip.file('metadata.json', JSON.stringify(metadataJson, null, 2));
+
             // ZIP generieren
+            console.log('📦 Generiere ZIP-Archiv mit Ordnerstruktur...');
             const zipContent = await zip.generateAsync({
                 type: 'blob',
                 compression: 'DEFLATE',
@@ -466,7 +531,10 @@ Keine personenbezogenen Daten wurden an externe Server übertragen.
             const filename = `Wochennachweise_${nachname}_${new Date().toISOString().split('T')[0]}.zip`;
             this.downloadBlob(zipContent, filename);
 
+            console.log('✅ ZIP-Download mit Ordnerstruktur gestartet:', filename);
+
         } catch (error) {
+            console.error('❌ ZIP-Fehler:', error);
             throw new Error(`ZIP-Erstellung fehlgeschlagen: ${error.message}`);
         }
     }
@@ -512,22 +580,37 @@ Keine personenbezogenen Daten wurden an externe Server übertragen.
             }
         }
 
-        // Buttons für jedes Dokument erstellen
+        // Buttons für jedes Dokument erstellen, sortiert nach Kategorie
         const buttonsDiv = document.createElement('div');
         buttonsDiv.className = 'row';
 
+        // Gruppierung nach Kategorien
+        const kategorien = {};
         documents.forEach(doc => {
-            const buttonCol = document.createElement('div');
-            buttonCol.className = 'col-md-3 mb-2';
+            const kat = doc.kategorie || 'Sonstige';
+            if (!kategorien[kat]) kategorien[kat] = [];
+            kategorien[kat].push(doc);
+        });
 
-            const wocheNummer = doc.woche.nummer || doc.woche.Nummer || 'X';
-            const button = document.createElement('button');
-            button.className = 'btn btn-outline-primary btn-sm w-100';
-            button.innerHTML = `<i class="bi bi-download"></i> Woche ${wocheNummer}`;
-            button.onclick = () => this.downloadSingleDocument(doc.woche);
+        // Für jede Kategorie eine Spalte
+        Object.keys(kategorien).forEach(kategorie => {
+            const docs = kategorien[kategorie];
+            if (docs.length === 0) return;
 
-            buttonCol.appendChild(button);
-            buttonsDiv.appendChild(buttonCol);
+            const katCol = document.createElement('div');
+            katCol.className = 'col-md-6 mb-3';
+            katCol.innerHTML = `<h6><i class="bi bi-${kategorie === 'Praktikum' ? 'building' : 'mortarboard'} me-1"></i>${kategorie} (${docs.length})</h6>`;
+
+            docs.forEach(doc => {
+                const wocheNummer = doc.woche.nummer || doc.woche.Nummer || 'X';
+                const button = document.createElement('button');
+                button.className = 'btn btn-outline-primary btn-sm me-1 mb-1';
+                button.innerHTML = `<i class="bi bi-download"></i> Woche ${wocheNummer}`;
+                button.onclick = () => this.downloadSingleDocument(doc.woche);
+                katCol.appendChild(button);
+            });
+
+            buttonsDiv.appendChild(katCol);
         });
 
         container.appendChild(buttonsDiv);
@@ -566,7 +649,7 @@ Keine personenbezogenen Daten wurden an externe Server übertragen.
                     <span>${message}</span>
                 </div>
             `;
-            setTimeout(() => this.hideProgress(), 5000);
+            setTimeout(() => this.hideProgress(), 10000);
         }
     }
 
@@ -602,20 +685,20 @@ Keine personenbezogenen Daten wurden an externe Server übertragen.
     }
 }
 
-// Globale Instanz erstellen
+// Globale Instanz erstellen - UNVERÄNDERT
 const wochennachweisGenerator = new ClientWochennachweisGenerator();
 
-// Bei Seitenload initialisieren
+// Bei Seitenload initialisieren - UNVERÄNDERT
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Initialisiere Wochennachweis-Generator...');
+    console.log('🚀 Initialisiere erweiterten Wochennachweis-Generator...');
     wochennachweisGenerator.initialize();
 
     // Event-Handler für das Generieren-Formular
-    const generateForm = document.querySelector('form[asp-action="Generate"]');
+    const generateForm = document.querySelector('form[action="/Home/Generate"]');
     if (generateForm) {
         generateForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            console.log('📝 Starte Client-seitige Generierung...');
+            console.log('📝 Starte Client-seitige Generierung mit ZIP-Unterordnern...');
             await wochennachweisGenerator.generateDocuments();
         });
     }
@@ -631,8 +714,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Debug: Formular-Elemente prüfen
     console.log('🔍 Verfügbare Formular-Elemente:');
-    console.log('- Umschulungsbeginn:', document.getElementById('Umschulungsbeginn'));
-    console.log('- Nachname:', document.getElementById('Nachname'));
-    console.log('- Vorname:', document.getElementById('Vorname'));
-    console.log('- Klasse:', document.getElementById('Klasse'));
+    ['Umschulungsbeginn', 'UmschulungsEnde', 'Nachname', 'Vorname', 'Klasse', 'Bundesland'].forEach(id => {
+        const el = document.getElementById(id);
+        console.log(`- ${id}:`, el ? '✅ Gefunden' : '❌ Nicht gefunden');
+    });
+
+    console.log('✅ Erweiterte Generator-Initialisierung abgeschlossen');
 });

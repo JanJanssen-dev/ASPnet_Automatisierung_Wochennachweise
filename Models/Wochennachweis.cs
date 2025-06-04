@@ -23,6 +23,12 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public string Vorname { get; set; } = string.Empty;
         public string Klasse { get; set; } = string.Empty;
 
+        // Zusätzliche Properties für bessere Darstellung
+        public string ZeitraumFormatiert => $"{Montag:dd.MM.yyyy} - {Samstag:dd.MM.yyyy}";
+        public int KalenderwocheNummer => System.Globalization.ISOWeek.GetWeekOfYear(Montag);
+        public bool HatBeschreibungen => Beschreibungen.Any();
+        public string BeschreibungenZusammengefasst => string.Join(", ", Beschreibungen);
+
         // FLEXIBLE Feiertag-Unterstützung - sowohl List als auch Dictionary
         private List<bool> _istFeiertagListe = new();
         private Dictionary<DateTime, bool> _feiertagsDictionary = new();
