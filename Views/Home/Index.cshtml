@@ -37,14 +37,15 @@
             }
 
             <!-- HAUPTFORMULAR -->
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="bi bi-person-circle me-2"></i>Grunddaten
-                </h5>
-                <button type="button" class="btn btn-sm btn-outline-light" onclick="resetAll()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Alles zurücksetzen
-                </button>
-            </div>
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle me-2"></i>Grunddaten
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="resetAll()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Alles zurücksetzen
+                    </button>
+                </div>
                 <div class="card-body">
                     <form action="/Home/Generate" method="post" id="wochennachweis-form">
                         <div class="row">
@@ -135,6 +136,9 @@
                                     <i class="bi bi-calendar3 me-2"></i>Zeiträume definieren
                                     <span class="badge bg-secondary" id="zeitraeume-count">@Model.Zeitraeume.Count</span>
                                 </h5>
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Pro Tag nur ein Zeitraum möglich
+                                </small>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
@@ -171,7 +175,7 @@
                                             }
 
                                             <!-- Neue Eingabe-Zeile -->
-                                            <tr id="neue-eingabe-zeile">
+                                            <tr id="neue-eingabe-zeile" class="table-info">
                                                 <td>
                                                     <select class="form-select form-select-sm" id="neue-kategorie" required>
                                                         <option value="">Wählen...</option>
@@ -213,7 +217,18 @@
                                     <div class="alert alert-info">
                                         <i class="bi bi-info-circle me-2"></i>
                                         <strong>Keine Zeiträume definiert.</strong>
-                                        Fügen Sie Zeiträume hinzu oder lassen Sie leer für automatische Generierung.
+                                        Fügen Sie Zeiträume hinzu oder lassen Sie leer für automatische Generierung bis zum Ende der Umschulung.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="bi bi-graph-up me-1"></i>
+                                            Praktikum: @Model.Zeitraeume.Count(z => z.Kategorie == "Praktikum") •
+                                            Umschulung: @Model.Zeitraeume.Count(z => z.Kategorie == "Umschulung") •
+                                            Gesamt: @Model.Zeitraeume.Sum(z => z.AnzahlTage) Tage
+                                        </small>
                                     </div>
                                 }
                             </div>
@@ -225,7 +240,7 @@
                                     onclick="document.getElementById('wochennachweis-form').submit();">
                                 <i class="bi bi-file-earmark-word me-2"></i>
                                 Wochennachweise generieren
-                                <br><small class="fw-normal">Client-seitige Erstellung</small>
+                                <br><small class="fw-normal">Client-seitige Erstellung mit ZIP-Unterordnern</small>
                             </button>
 
                             @if (debugEnabled)
@@ -251,6 +266,8 @@
                                 <li>Definieren Sie alle Zeiträume von Beginn bis Ende</li>
                                 <li>Feiertage werden automatisch erkannt</li>
                                 <li>ZIP-Download enthält Praktikum/- und Umschulung/-Ordner</li>
+                                <li>Überschneidungen werden automatisch erkannt</li>
+                                <li>Enter-Taste zum schnellen Hinzufügen</li>
                             </ul>
                         </div>
                     </div>
@@ -268,6 +285,12 @@
                                 <a asp-action="TemplateHelp" class="btn btn-outline-info btn-sm">
                                     <i class="bi bi-file-earmark-word me-1"></i>Template-Platzhalter
                                 </a>
+                                @if (debugEnabled)
+                                {
+                                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="debugDOMElements()">
+                                        <i class="bi bi-bug me-1"></i>Debug DOM
+                                    </button>
+                                }
                             </div>
                         </div>
                     </div>
@@ -275,7 +298,7 @@
             </div>
         </div>
     </div>
-
+</div>
 
 @section Scripts {
     <script>
@@ -531,6 +554,48 @@
             } else {
                 alert(message);
             }
+        }
+
+        // DEBUG-FUNKTIONEN (nur wenn Debug aktiv)
+        @if (debugEnabled)
+        {
+                <text>
+                function debugDOMElements() {
+                    console.log('🔍 DOM DEBUG REPORT:');
+                    console.log('=====================================');
+
+                    console.log('📋 Alle Forms:');
+                    document.querySelectorAll('form').forEach(function(form, i) {
+                        console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
+                    });
+
+                    console.log('📋 Delete-Forms:');
+                    var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
+                    console.log('  Delete-Forms gefunden: ' + deleteForms.length);
+                    deleteForms.forEach(function(form, i) {
+                        console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '"}');
+                    });
+
+                    console.log('📋 Zeiträume-Tabelle:');
+                    var table = document.getElementById('zeitraeume-table');
+                    console.log('  Tabelle vorhanden: ' + !!table);
+                    if (table) {
+                        var rows = table.querySelectorAll('tbody tr');
+                        console.log('  Zeilen in tbody: ' + rows.length);
+                    }
+
+                    console.log('📋 Eingabe-Felder:');
+                    ['neue-kategorie', 'neues-start', 'neues-ende', 'neue-beschreibung'].forEach(id => {
+                        var el = document.getElementById(id);
+                        console.log('  ' + id + ': ' + (el ? '✅ Gefunden' : '❌ Nicht gefunden'));
+                    });
+
+                    console.log('=====================================');
+                }
+
+                console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
+                console.log('🔧 Debug-Funktionen verfügbar: debugDOMElements()');
+                </text>
         }
 
         console.log('📋 Index-Page JavaScript geladen');

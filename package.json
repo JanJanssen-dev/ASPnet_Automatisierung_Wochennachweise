@@ -7,9 +7,19 @@
     "eslint": "^9.27.0"
   },
   "scripts": {
-    "copy-libs": "mkdir wwwroot\\lib\\pizzip && mkdir wwwroot\\lib\\docxtemplater && copy node_modules\\pizzip\\dist\\pizzip.min.js wwwroot\\lib\\pizzip\\ && copy node_modules\\docxtemplater\\build\\docxtemplater.js wwwroot\\lib\\docxtemplater\\docxtemplater.min.js"
+    "build": "npm run copy-libs",
+    "copy-libs": "npm run ensure-dirs && npm run copy-pizzip && npm run copy-docxtemplater",
+    "ensure-dirs": "mkdir -p wwwroot/lib/pizzip && mkdir -p wwwroot/lib/docxtemplater",
+    "copy-pizzip": "cp node_modules/pizzip/dist/pizzip.js wwwroot/lib/pizzip/pizzip.js",
+    "copy-docxtemplater": "cp node_modules/docxtemplater/build/docxtemplater.js wwwroot/lib/docxtemplater/docxtemplater.js",
+    "clean": "rm -rf wwwroot/lib/pizzip wwwroot/lib/docxtemplater",
+    "rebuild": "npm run clean && npm run copy-libs",
+
+    "copy-libs-windows": "npm run ensure-dirs-windows && npm run copy-pizzip-windows && npm run copy-docxtemplater-windows",
+    "ensure-dirs-windows": "if not exist \"wwwroot\\lib\\pizzip\" mkdir \"wwwroot\\lib\\pizzip\" && if not exist \"wwwroot\\lib\\docxtemplater\" mkdir \"wwwroot\\lib\\docxtemplater\"",
+    "copy-pizzip-windows": "copy \"node_modules\\pizzip\\dist\\pizzip.js\" \"wwwroot\\lib\\pizzip\\pizzip.js\"",
+    "copy-docxtemplater-windows": "copy \"node_modules\\docxtemplater\\build\\docxtemplater.js\" \"wwwroot\\lib\\docxtemplater\\docxtemplater.js\"",
+
+    "postinstall": "npm run copy-libs || npm run copy-libs-windows"
   }
-
-
 }
-

@@ -1,46 +1,33 @@
 ﻿@*
-    Validation Scripts - Vereinfachte Version ohne dynamisches Laden
+    Validation Scripts - Minimale Version
+    Verwendet nur Browser-eigene HTML5-Validation
 *@
 
 <script>
-    // Prüfen ob jQuery verfügbar ist
-    if (typeof jQuery !== 'undefined') {
-        console.log('✅ jQuery verfügbar für Validation Scripts');
+    console.log('📋 Validation Scripts: Browser-eigene HTML5-Validation aktiv');
 
-        // jQuery Validation von CDN laden (falls lokal nicht verfügbar)
-        if (typeof $.validator === 'undefined') {
-            console.log('⚠️ jQuery Validation wird von CDN geladen...');
+    // Optional: Einfache Client-seitige Validation-Verbesserung
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                // Browser-eigene Validation
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
 
-            // jQuery Validation
-            var validationScript = document.createElement('script');
-            validationScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js';
-            validationScript.integrity = 'sha512-rstIgDs0xPgmG6RX1Aba4KV5cWJbAMcvRCVmglpam9SoHZiUCyQVDdH2LPlxoHtrv17XWblE/V/PP+Tr04hbtA==';
-            validationScript.crossOrigin = 'anonymous';
-            validationScript.onload = function() {
-                console.log('✅ jQuery Validation geladen');
+                    // Zeige erste ungültige Eingabe an
+                    const firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                        firstInvalid.reportValidity();
+                    }
+                }
 
-                // Dann Unobtrusive Validation laden
-                var unobtrusiveScript = document.createElement('script');
-                unobtrusiveScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js';
-                unobtrusiveScript.integrity = 'sha512-SjSl6BKKJ5E3PfX7yZrTfTsj8OJlZP3TJXwwG1vHFGYYCLKO9qb3Xz7Kyr0Q5H4zrK9eJ9d+5r/LF9Kw/M2lZA==';
-                unobtrusiveScript.crossOrigin = 'anonymous';
-                unobtrusiveScript.onload = function() {
-                    console.log('✅ jQuery Unobtrusive Validation geladen');
-                };
-                unobtrusiveScript.onerror = function() {
-                    console.warn('⚠️ jQuery Unobtrusive Validation konnte nicht geladen werden');
-                };
-                document.head.appendChild(unobtrusiveScript);
-            };
-            validationScript.onerror = function() {
-                console.warn('⚠️ jQuery Validation konnte nicht geladen werden');
-            };
-            document.head.appendChild(validationScript);
-        } else {
-            console.log('✅ jQuery Validation bereits verfügbar');
-        }
-    } else {
-        console.error('❌ jQuery ist nicht verfügbar für Validation Scripts!');
-        console.log('🔧 Validation Scripts werden übersprungen');
-    }
+                form.classList.add('was-validated');
+            });
+        });
+
+        console.log('✅ Einfache Form-Validation aktiviert');
+    });
 </script>

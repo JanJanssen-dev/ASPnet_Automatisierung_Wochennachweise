@@ -15,11 +15,15 @@ publish/
 .idea/
 *.sln.iml
 
-# ASP.NET spezifisch
-wwwroot/lib/
+# ASP.NET spezifisch - ABER NICHT wwwroot/lib/ generell ausschließen
 wwwroot/node_modules/
 wwwroot/output/
 node_modules/
+
+# SPEZIFISCHE lib-Ausschlüsse (nur was wirklich automatisch generiert wird)
+wwwroot/lib/bootstrap/
+wwwroot/lib/jquery/
+# ABER NICHT: wwwroot/lib/pizzip/ und wwwroot/lib/docxtemplater/
 
 # Paketverwaltung
 packages/

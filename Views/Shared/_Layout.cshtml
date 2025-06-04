@@ -4,10 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Wochennachweis Generator</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <!-- Bootstrap CSS von CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ASPnet_Automatisierung_Wochennachweise.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -59,18 +64,19 @@
     </footer>
 
     <!-- ================================ -->
-    <!-- 🔧 STANDARD SCRIPTS - KORREKTE REIHENFOLGE -->
+    <!-- 🔧 SCRIPTS - ALLE VON CDN FÜR ZUVERLÄSSIGKEIT -->
     <!-- ================================ -->
-    <!-- 1. ZUERST: jQuery (muss vor allem anderen stehen) -->
+    <!-- 1. jQuery von CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
             integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    <!-- 2. DANN: Bootstrap (benötigt jQuery) -->
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- 2. Bootstrap JavaScript von CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 
     <!-- ================================ -->
-    <!-- 🔧 CLIENT-SEITIGE LIBRARIES -->
+    <!-- 🔧 CLIENT-SEITIGE LIBRARIES - LOKALE DATEIEN -->
     <!-- ================================ -->
     <!-- PizZip für ZIP-Handling -->
     <script src="~/lib/pizzip/pizzip.js"></script>
@@ -118,6 +124,22 @@
                 } else if (typeof Docxtemplater !== 'undefined') {
                     console.log('📄 Docxtemplater (Global) verfügbar');
                 }
+
+                // 🔧 ERWEITERTE SETUP-PRÜFUNG
+                console.log('🔧 Setup-Prüfung:');
+                console.log('- Bootstrap CSS:', document.querySelector('link[href*="bootstrap"]') ? '✅ Geladen' : '❌ Fehlt');
+                console.log('- Bootstrap JS:', typeof bootstrap !== 'undefined' ? '✅ Geladen' : '❌ Fehlt');
+                console.log('- pizzip.js geladen:', typeof PizZip !== 'undefined' ? '✅' : '❌ Datei fehlt in wwwroot/lib/pizzip/');
+                console.log('- docxtemplater.js geladen:', (typeof docxtemplater !== 'undefined' || typeof Docxtemplater !== 'undefined') ? '✅' : '❌ Datei fehlt in wwwroot/lib/docxtemplater/');
+
+                if (typeof PizZip === 'undefined' || (typeof docxtemplater === 'undefined' && typeof Docxtemplater === 'undefined')) {
+                    console.warn('⚠️ Setup unvollständig! Führen Sie npm run copy-libs aus.');
+                }
+
+                // Teste Bootstrap-Komponenten
+                if (typeof bootstrap !== 'undefined') {
+                    console.log('🎨 Bootstrap-Komponenten verfügbar: Modal, Tooltip, Alert, etc.');
+                }
             }, 1000);
         </script>
     }
@@ -130,10 +152,10 @@
             setTimeout(function() {
                 if (typeof PizZip === 'undefined' || typeof JSZip === 'undefined') {
                     console.warn('⚠️ Benötigte Libraries nicht vollständig geladen');
-                    console.log('🔧 Verfügbare Libraries:');
-                    console.log('- PizZip:', typeof PizZip !== 'undefined' ? '✅' : '❌');
-                    console.log('- Docxtemplater:', (typeof docxtemplater !== 'undefined' || typeof Docxtemplater !== 'undefined') ? '✅' : '❌');
-                    console.log('- JSZip:', typeof JSZip !== 'undefined' ? '✅' : '❌');
+                    console.log('🔧 Führen Sie npm run copy-libs aus');
+                }
+                if (typeof bootstrap === 'undefined') {
+                    console.warn('⚠️ Bootstrap nicht geladen - UI könnte beeinträchtigt sein');
                 }
             }, 1000);
         </script>
