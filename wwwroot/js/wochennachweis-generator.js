@@ -1,11 +1,21 @@
-﻿// Client-seitige Wochennachweis-Generierung - ERWEITERTE VERSION
+﻿// Client-seitige Wochennachweis-Generierung - SEITENSPEZIFISCHE VERSION
 class ClientWochennachweisGenerator {
     constructor() {
         this.template = null;
         this.isGenerating = false;
+        this.isIndexPage = false;
+        this.isResultPage = false;
     }
 
     async initialize() {
+        // 🔧 SEITENERKENNUNG
+        this.isIndexPage = document.getElementById('wochennachweis-form') !== null;
+        this.isResultPage = window.location.pathname.includes('/Generate') || document.querySelector('.table') !== null;
+
+        console.log('🔍 Seitenerkennung:');
+        console.log('- Index-Seite:', this.isIndexPage ? '✅' : '❌');
+        console.log('- Result-Seite:', this.isResultPage ? '✅' : '❌');
+
         try {
             // Template beim Laden der Seite vorab herunterladen
             const response = await fetch('/api/wochennachweis/template');
@@ -58,9 +68,24 @@ class ClientWochennachweisGenerator {
         return true;
     }
 
+    // 🔧 NEUE METHODE: Prüfe Dependencies
+    checkDependencies() {
+        const hasPizZip = typeof PizZip !== 'undefined';
+        const hasDocxtemplater = typeof docxtemplater !== 'undefined' || typeof Docxtemplater !== 'undefined';
+        const hasJSZip = typeof JSZip !== 'undefined';
+
+        if (!hasPizZip || !hasDocxtemplater || !hasJSZip) {
+            this.showError('Benötigte Libraries fehlen. Führen Sie npm run copy-libs aus.');
+            return false;
+        }
+        return true;
+    }
+
     async downloadSingleDocument(woche) {
         try {
             this.showProgress(`📄 Erstelle Dokument für Woche ${woche.nummer || woche.Nummer}...`);
+
+            if (!this.checkDependencies()) return;
 
             // Wenn das Template noch nicht geladen ist
             if (!this.template) {
@@ -96,9 +121,17 @@ class ClientWochennachweisGenerator {
             return;
         }
 
+        // 🔧 NUR AUF INDEX-SEITE ERLAUBT
+        if (!this.isIndexPage) {
+            console.warn('⚠️ generateDocuments() nur auf Index-Seite verfügbar');
+            return;
+        }
+
         this.isGenerating = true;
 
         try {
+            if (!this.checkDependencies()) return;
+
             // 1. Konfigurationsdaten sammeln
             this.showProgress('📋 Sammle Konfigurationsdaten...');
             const configData = this.getConfigFromForm();
@@ -223,6 +256,12 @@ class ClientWochennachweisGenerator {
     }
 
     getConfigFromForm() {
+        // 🔧 NUR AUF INDEX-SEITE VERFÜGBAR
+        if (!this.isIndexPage) {
+            console.warn('⚠️ getConfigFromForm() nur auf Index-Seite verfügbar');
+            return {};
+        }
+
         return {
             umschulungsbeginn: document.getElementById('Umschulungsbeginn')?.value || '',
             umschulungsEnde: document.getElementById('UmschulungsEnde')?.value || '',
@@ -235,6 +274,11 @@ class ClientWochennachweisGenerator {
     }
 
     getZeitraeume() {
+        // 🔧 NUR AUF INDEX-SEITE VERFÜGBAR
+        if (!this.isIndexPage) {
+            return [];
+        }
+
         const zeitraeume = [];
         const tableRows = document.querySelectorAll('#zeitraeume-tbody tr[data-index]');
 
@@ -279,6 +323,8 @@ class ClientWochennachweisGenerator {
     async testDocxtemplater() {
         try {
             this.showProgress('🔧 Teste Docxtemplater...');
+
+            if (!this.checkDependencies()) return false;
 
             // 1. Bibliotheken prüfen - UNVERÄNDERT
             if (typeof PizZip === 'undefined') {
@@ -420,6 +466,8 @@ class ClientWochennachweisGenerator {
     // 🔥 NEUE METHODE: ZIP MIT UNTERORDNERN ERSTELLEN
     async createZipDownloadWithFolders(documents, metaData) {
         try {
+            if (!this.checkDependencies()) return;
+
             const zip = new JSZip();
 
             // Dokumente nach Kategorien sortieren
@@ -688,14 +736,14 @@ Erstellt mit: ASP.NET Core Wochennachweis-Generator
 // Globale Instanz erstellen - UNVERÄNDERT
 const wochennachweisGenerator = new ClientWochennachweisGenerator();
 
-// Bei Seitenload initialisieren - UNVERÄNDERT
+// Bei Seitenload initialisieren - VERBESSERT
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 Initialisiere erweiterten Wochennachweis-Generator...');
     wochennachweisGenerator.initialize();
 
-    // Event-Handler für das Generieren-Formular
+    // Event-Handler für das Generieren-Formular (nur auf Index-Seite)
     const generateForm = document.querySelector('form[action="/Home/Generate"]');
-    if (generateForm) {
+    if (generateForm && wochennachweisGenerator.isIndexPage) {
         generateForm.addEventListener('submit', async function (e) {
             e.preventDefault();
             console.log('📝 Starte Client-seitige Generierung mit ZIP-Unterordnern...');
@@ -703,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Event-Handler für den Test-Button
+    // Event-Handler für den Test-Button (alle Seiten)
     const testButton = document.getElementById('test-docxtemplater-button');
     if (testButton) {
         testButton.addEventListener('click', async function () {
@@ -712,12 +760,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Debug: Formular-Elemente prüfen
-    console.log('🔍 Verfügbare Formular-Elemente:');
-    ['Umschulungsbeginn', 'UmschulungsEnde', 'Nachname', 'Vorname', 'Klasse', 'Bundesland'].forEach(id => {
-        const el = document.getElementById(id);
-        console.log(`- ${id}:`, el ? '✅ Gefunden' : '❌ Nicht gefunden');
-    });
+    // Debug: Formular-Elemente prüfen (nur auf Index-Seite)
+    if (wochennachweisGenerator.isIndexPage) {
+        console.log('🔍 Verfügbare Formular-Elemente:');
+        ['Umschulungsbeginn', 'UmschulungsEnde', 'Nachname', 'Vorname', 'Klasse', 'Bundesland'].forEach(id => {
+            const el = document.getElementById(id);
+            console.log(`- ${id}:`, el ? '✅ Gefunden' : '❌ Nicht gefunden');
+        });
+    } else {
+        console.log('📋 Result-Seite: Formular-Elemente nicht erwartet');
+    }
 
     console.log('✅ Erweiterte Generator-Initialisierung abgeschlossen');
 });

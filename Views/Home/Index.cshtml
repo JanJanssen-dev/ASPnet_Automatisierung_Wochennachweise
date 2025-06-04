@@ -36,6 +36,54 @@
                 </div>
             }
 
+            <!-- TEMPLATE-UPLOAD-SEKTION -->
+            <div class="card mb-4 shadow-sm border-info">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-word me-2"></i>Template-Einstellungen
+                    </h5>
+                    <a asp-action="TemplateHelp" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-question-circle me-1"></i>Platzhalter-Hilfe
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-upload me-1"></i>Eigenes Template hochladen (optional)
+                                </label>
+                                <input type="file" class="form-control" id="template-upload" accept=".docx" />
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Word-Vorlage (.docx) mit Platzhaltern wie {{NACHNAME}}, {{WOCHE}}, etc.
+                                    <a asp-action="TemplateHelp" class="text-decoration-none">→ Alle Platzhalter anzeigen</a>
+                                </div>
+                                <div id="template-status" class="mt-2"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Template-Status</label>
+                                <div class="p-2 bg-light rounded">
+                                    <div id="current-template-info">
+                                        <small class="text-muted">
+                                            <i class="bi bi-file-earmark-word me-1"></i>
+                                            Standard-Template aktiv
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="reset-template-btn">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>Standard wiederherstellen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- HAUPTFORMULAR -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -268,6 +316,7 @@
                                 <li>ZIP-Download enthält Praktikum/- und Umschulung/-Ordner</li>
                                 <li>Überschneidungen werden automatisch erkannt</li>
                                 <li>Enter-Taste zum schnellen Hinzufügen</li>
+                                <li><strong>Eigenes Template:</strong> Verwenden Sie Platzhalter wie {{NACHNAME}}</li>
                             </ul>
                         </div>
                     </div>
@@ -305,6 +354,7 @@
         // GLOBALE VARIABLEN
         var DEBUG_ENABLED = @(debugEnabled.ToString().ToLower());
         var ZEITRAEUME_COUNT = @Model.Zeitraeume.Count;
+        var customTemplate = null; // Für hochgeladenes Template
 
         // DOM READY EVENT
         document.addEventListener('DOMContentLoaded', function () {
@@ -313,7 +363,97 @@
             initializeFormValidation();
             initializeSignaturUpload();
             initializeInlineZeitraumEingabe();
+            initializeTemplateUpload(); // NEU
         });
+
+        // 🔧 NEUE TEMPLATE-UPLOAD-FUNKTION
+        function initializeTemplateUpload() {
+            const templateUpload = document.getElementById('template-upload');
+            const templateStatus = document.getElementById('template-status');
+            const currentTemplateInfo = document.getElementById('current-template-info');
+            const resetTemplateBtn = document.getElementById('reset-template-btn');
+
+            if (templateUpload) {
+                templateUpload.addEventListener('change', async function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    // Validierung
+                    if (!file.name.toLowerCase().endsWith('.docx')) {
+                        showAlert('Bitte nur .docx Dateien hochladen!', 'warning');
+                        templateUpload.value = '';
+                        return;
+                    }
+
+                    if (file.size > 10 * 1024 * 1024) { // 10MB Limit
+                        showAlert('Datei ist zu groß. Maximum 10MB erlaubt.', 'warning');
+                        templateUpload.value = '';
+                        return;
+                    }
+
+                    try {
+                        // Template als ArrayBuffer lesen
+                        const arrayBuffer = await file.arrayBuffer();
+                        customTemplate = arrayBuffer;
+
+                        // Generator-Template überschreiben
+                        if (window.wochennachweisGenerator) {
+                            window.wochennachweisGenerator.template = arrayBuffer;
+                            console.log('✅ Template im Generator aktualisiert');
+                        }
+
+                        // Status anzeigen
+                        templateStatus.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Eigenes Template geladen: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)
+                            </div>
+                        `;
+
+                        currentTemplateInfo.innerHTML = `
+                            <small class="text-success">
+                                <i class="bi bi-file-earmark-word me-1"></i>
+                                Eigenes Template: ${file.name}
+                            </small>
+                        `;
+
+                        showAlert('Template erfolgreich hochgeladen und aktiviert!', 'success');
+
+                    } catch (error) {
+                        console.error('❌ Template-Upload Fehler:', error);
+                        showAlert('Fehler beim Laden des Templates: ' + error.message, 'danger');
+                        templateUpload.value = '';
+                        customTemplate = null;
+                    }
+                });
+            }
+
+            // Reset-Button
+            if (resetTemplateBtn) {
+                resetTemplateBtn.addEventListener('click', function() {
+                    if (confirm('Standard-Template wiederherstellen?')) {
+                        customTemplate = null;
+
+                        // Generator zurücksetzen
+                        if (window.wochennachweisGenerator) {
+                            window.wochennachweisGenerator.template = null;
+                            console.log('✅ Generator-Template zurückgesetzt');
+                        }
+
+                        templateUpload.value = '';
+                        templateStatus.innerHTML = '';
+                        currentTemplateInfo.innerHTML = `
+                            <small class="text-muted">
+                                <i class="bi bi-file-earmark-word me-1"></i>
+                                Standard-Template aktiv
+                            </small>
+                        `;
+
+                        showAlert('Standard-Template wiederhergestellt!', 'success');
+                    }
+                });
+            }
+        }
 
         // INLINE ZEITRAUM-EINGABE
         function initializeInlineZeitraumEingabe() {
@@ -509,6 +649,12 @@
         // RESET-FUNKTION
         function resetAll() {
             if (confirm('Wirklich alle Daten zurücksetzen?')) {
+                // Template auch zurücksetzen
+                customTemplate = null;
+                if (window.wochennachweisGenerator) {
+                    window.wochennachweisGenerator.template = null;
+                }
+
                 if (typeof sessionStorage !== 'undefined') sessionStorage.clear();
                 if (typeof localStorage !== 'undefined') localStorage.clear();
 
@@ -556,49 +702,119 @@
             }
         }
 
+        // 🔧 ERWEITERTE GENERATOR-INTEGRATION
+        // Template-Überschreibung im Wochennachweis-Generator
+        if (window.wochennachweisGenerator) {
+            // Überschreibe die loadTemplate Methode
+            const originalLoadTemplate = window.wochennachweisGenerator.loadTemplate.bind(window.wochennachweisGenerator);
+
+            window.wochennachweisGenerator.loadTemplate = async function() {
+                // Verwende eigenes Template wenn vorhanden
+                if (customTemplate) {
+                    console.log('📄 Verwende eigenes Template');
+                    this.template = customTemplate;
+                    return;
+                }
+
+                // Sonst Standard-Template laden
+                await originalLoadTemplate();
+            };
+
+            console.log('✅ Template-Override im Generator installiert');
+        }
+
         // DEBUG-FUNKTIONEN (nur wenn Debug aktiv)
         @if (debugEnabled)
         {
-                <text>
-                function debugDOMElements() {
-                    console.log('🔍 DOM DEBUG REPORT:');
-                    console.log('=====================================');
+                    <text>
+                    function debugDOMElements() {
+                        console.log('🔍 DOM DEBUG REPORT:');
+                        console.log('=====================================');
 
-                    console.log('📋 Alle Forms:');
-                    document.querySelectorAll('form').forEach(function(form, i) {
-                        console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
-                    });
+                        console.log('📋 Alle Forms:');
+                        document.querySelectorAll('form').forEach(function(form, i) {
+                            console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
+                        });
 
-                    console.log('📋 Delete-Forms:');
-                    var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
-                    console.log('  Delete-Forms gefunden: ' + deleteForms.length);
-                    deleteForms.forEach(function(form, i) {
-                        console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '"}');
-                    });
+                        console.log('📋 Delete-Forms:');
+                        var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
+                        console.log('  Delete-Forms gefunden: ' + deleteForms.length);
+                        deleteForms.forEach(function(form, i) {
+                            console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '"}');
+                        });
 
-                    console.log('📋 Zeiträume-Tabelle:');
-                    var table = document.getElementById('zeitraeume-table');
-                    console.log('  Tabelle vorhanden: ' + !!table);
-                    if (table) {
-                        var rows = table.querySelectorAll('tbody tr');
-                        console.log('  Zeilen in tbody: ' + rows.length);
+                        console.log('📋 Zeiträume-Tabelle:');
+                        var table = document.getElementById('zeitraeume-table');
+                        console.log('  Tabelle vorhanden: ' + !!table);
+                        if (table) {
+                            var rows = table.querySelectorAll('tbody tr');
+                            console.log('  Zeilen in tbody: ' + rows.length);
+                        }
+
+                        console.log('📋 Eingabe-Felder:');
+                        ['neue-kategorie', 'neues-start', 'neues-ende', 'neue-beschreibung'].forEach(id => {
+                            var el = document.getElementById(id);
+                            console.log('  ' + id + ': ' + (el ? '✅ Gefunden' : '❌ Nicht gefunden'));
+                        });
+
+                        console.log('📋 Template-Upload:');
+                        console.log('  Upload-Element: ' + (document.getElementById('template-upload') ? '✅ Gefunden' : '❌ Nicht gefunden'));
+                        console.log('  Custom Template: ' + (customTemplate ? '✅ Geladen (' + customTemplate.byteLength + ' Bytes)' : '❌ Nicht geladen'));
+                        console.log('  Generator Template: ' + (window.wochennachweisGenerator && window.wochennachweisGenerator.template ? '✅ Im Generator' : '❌ Nicht im Generator'));
+
+                        console.log('=====================================');
                     }
 
-                    console.log('📋 Eingabe-Felder:');
-                    ['neue-kategorie', 'neues-start', 'neues-ende', 'neue-beschreibung'].forEach(id => {
-                        var el = document.getElementById(id);
-                        console.log('  ' + id + ': ' + (el ? '✅ Gefunden' : '❌ Nicht gefunden'));
-                    });
+                    // Template-Debug-Funktionen
+                    window.debugTemplate = function() {
+                        console.log('🔧 === TEMPLATE DEBUG ===');
+                        console.log('Custom Template geladen:', !!customTemplate);
+                        if (customTemplate) {
+                            console.log('  Größe:', customTemplate.byteLength, 'Bytes');
+                            console.log('  Typ:', customTemplate.constructor.name);
+                        }
 
-                    console.log('=====================================');
-                }
+                        console.log('Generator verfügbar:', !!window.wochennachweisGenerator);
+                        if (window.wochennachweisGenerator) {
+                            console.log('  Generator Template:', !!window.wochennachweisGenerator.template);
+                            if (window.wochennachweisGenerator.template) {
+                                console.log('  Generator Template Größe:', window.wochennachweisGenerator.template.byteLength, 'Bytes');
+                            }
+                        }
+                    };
 
-                console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
-                console.log('🔧 Debug-Funktionen verfügbar: debugDOMElements()');
-                </text>
+                    window.testCustomTemplate = async function() {
+                        if (!customTemplate) {
+                            console.log('❌ Kein eigenes Template geladen');
+                            return;
+                        }
+
+                        console.log('🔧 Teste eigenes Template...');
+
+                        if (window.wochennachweisGenerator) {
+                            // Template temporär setzen
+                            const originalTemplate = window.wochennachweisGenerator.template;
+                            window.wochennachweisGenerator.template = customTemplate;
+
+                            try {
+                                await window.wochennachweisGenerator.testDocxtemplater();
+                                console.log('✅ Eigenes Template funktioniert!');
+                            } catch (error) {
+                                console.error('❌ Template-Test fehlgeschlagen:', error);
+                            } finally {
+                                // Original wiederherstellen
+                                window.wochennachweisGenerator.template = originalTemplate;
+                            }
+                        }
+                    };
+
+                    console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
+                    console.log('🔧 Debug-Funktionen verfügbar: debugDOMElements(), debugTemplate(), testCustomTemplate()');
+                    </text>
         }
 
-        console.log('📋 Index-Page JavaScript geladen');
+        console.log('📋 Index-Page JavaScript mit Template-Upload geladen');
+        console.log('📄 Template-Upload: Bereit für .docx Dateien');
     </script>
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");

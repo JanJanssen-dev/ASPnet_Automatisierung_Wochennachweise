@@ -12,12 +12,18 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         private readonly WochennachweisGenerator _generator;
         private readonly DebugService _debugService;
         private readonly ILogger<HomeController> _logger;
+        private readonly IWebHostEnvironment _environment; // 🔧 HINZUGEFÜGT
 
-        public HomeController(WochennachweisGenerator generator, DebugService debugService, ILogger<HomeController> logger)
+        public HomeController(
+            WochennachweisGenerator generator,
+            DebugService debugService,
+            ILogger<HomeController> logger,
+            IWebHostEnvironment environment) // 🔧 HINZUGEFÜGT
         {
             _generator = generator;
             _debugService = debugService;
             _logger = logger;
+            _environment = environment; // 🔧 HINZUGEFÜGT
         }
 
         public IActionResult Index()
@@ -42,6 +48,125 @@ namespace ASPnet_Automatisierung_Wochennachweise.Controllers
         {
             _debugService.LogController("Home", "TemplateHelp", "Lade Template-Hilfe-Seite");
             return View();
+        }
+
+        // ================================
+        // 🔧 TEMPLATE-UPLOAD FUNKTIONEN
+        // ================================
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UploadTemplate(IFormFile templateFile)
+        {
+            _debugService.LogController("Home", "UploadTemplate", $"Datei: {templateFile?.FileName}");
+
+            try
+            {
+                if (templateFile == null || templateFile.Length == 0)
+                {
+                    return Json(new { success = false, message = "Keine Datei ausgewählt." });
+                }
+
+                // Validierung: Nur .docx Dateien erlaubt
+                if (!templateFile.FileName.ToLower().EndsWith(".docx"))
+                {
+                    return Json(new { success = false, message = "Nur .docx Dateien sind erlaubt." });
+                }
+
+                // Größenlimit: 10MB
+                if (templateFile.Length > 10 * 1024 * 1024)
+                {
+                    return Json(new { success = false, message = "Datei ist zu groß. Maximum 10MB erlaubt." });
+                }
+
+                // Template-Ordner sicherstellen
+                var templatesDir = Path.Combine(_environment.WebRootPath, "templates");
+                if (!Directory.Exists(templatesDir))
+                {
+                    Directory.CreateDirectory(templatesDir);
+                }
+
+                // Backup vom aktuellen Template erstellen
+                var currentTemplatePath = Path.Combine(templatesDir, "Wochennachweis_Vorlage.docx");
+                var backupPath = Path.Combine(templatesDir, $"Wochennachweis_Vorlage_Backup_{DateTime.Now:yyyyMMdd_HHmmss}.docx");
+
+                if (System.IO.File.Exists(currentTemplatePath))
+                {
+                    System.IO.File.Copy(currentTemplatePath, backupPath);
+                    _debugService.LogDebug($"Backup erstellt: {backupPath}");
+                }
+
+                // Neues Template speichern
+                using (var stream = new FileStream(currentTemplatePath, FileMode.Create))
+                {
+                    await templateFile.CopyToAsync(stream);
+                }
+
+                _debugService.LogDebug($"Template hochgeladen: {templateFile.FileName} ({templateFile.Length} Bytes)");
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Template erfolgreich hochgeladen.",
+                    filename = templateFile.FileName,
+                    backupCreated = System.IO.File.Exists(backupPath)
+                });
+            }
+            catch (Exception ex)
+            {
+                _debugService.LogDebug($"ERROR in UploadTemplate: {ex.Message}");
+                _logger.LogError(ex, "Fehler beim Upload des Templates");
+
+                return Json(new { success = false, message = $"Upload-Fehler: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult ResetTemplate()
+        {
+            _debugService.LogController("Home", "ResetTemplate", "Template wird zurückgesetzt");
+
+            try
+            {
+                var templatesDir = Path.Combine(_environment.WebRootPath, "templates");
+                var currentTemplatePath = Path.Combine(templatesDir, "Wochennachweis_Vorlage.docx");
+
+                // Suche nach Backup-Dateien
+                var backupFiles = Directory.GetFiles(templatesDir, "Wochennachweis_Vorlage_Backup_*.docx")
+                    .OrderByDescending(f => f)
+                    .ToList();
+
+                if (backupFiles.Any())
+                {
+                    // Neuestes Backup wiederherstellen
+                    var latestBackup = backupFiles.First();
+                    System.IO.File.Copy(latestBackup, currentTemplatePath, true);
+
+                    _debugService.LogDebug($"Template von Backup wiederhergestellt: {latestBackup}");
+
+                    return Json(new
+                    {
+                        success = true,
+                        message = "Template vom Backup wiederhergestellt.",
+                        backupFile = Path.GetFileName(latestBackup)
+                    });
+                }
+                else
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Kein Backup verfügbar. Bitte laden Sie ein neues Template hoch."
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _debugService.LogDebug($"ERROR in ResetTemplate: {ex.Message}");
+                _logger.LogError(ex, "Fehler beim Zurücksetzen des Templates");
+
+                return Json(new { success = false, message = $"Reset-Fehler: {ex.Message}" });
+            }
         }
 
         // ================================
