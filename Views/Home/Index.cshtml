@@ -371,7 +371,7 @@
         });
 
         // 🔧 REPARIERTE FUNKTION: Generate-Button mit Generator-Wartefunktion
-        function initializeGenerateButtonFixed() {
+                function initializeGenerateButtonFixed() {
             const generateForm = document.querySelector('form[action="/Home/Generate"]');
             const generateButton = document.getElementById('generate-button');
 
@@ -379,7 +379,7 @@
                 // Entferne den ursprünglichen onclick-Handler
                 generateButton.removeAttribute('onclick');
 
-                // 🔧 KRITISCH: Neuer Event-Handler mit Template-Erkennung
+                // 🔧 KRITISCH: Neuer Event-Handler mit verbesserter Generator-Suche
                 generateButton.addEventListener('click', async function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -390,37 +390,57 @@
                     if (window.customTemplateData || customTemplate) {
                         console.log('📄 Eigenes Template erkannt - verwende Client-seitige Generierung');
 
-                        // 🔧 WICHTIG: Warte auf Generator und führe dann aus
-                        if (window.wochennachweisGenerator) {
+                        // 🔧 VERBESSERTE Generator-Suche
+                        const findGenerator = () => {
+                            return window.wochennachweisGenerator ||
+                                   window.ClientWochennachweisGenerator ||
+                                   // Fallback: Suche in globalen Objekten
+                                   (typeof wochennachweisGenerator !== 'undefined' ? wochennachweisGenerator : null);
+                        };
+
+                        let generator = findGenerator();
+
+                        if (generator) {
                             try {
-                                await window.wochennachweisGenerator.generateDocuments();
+                                console.log('✅ Generator gefunden:', generator.constructor.name || 'Generator');
+                                await generator.generateDocuments();
                             } catch (error) {
                                 console.error('❌ Client-seitige Generierung fehlgeschlagen:', error);
                                 showAlert('Fehler bei der Client-seitigen Generierung: ' + error.message, 'danger');
                             }
                         } else {
-                            // Generator noch nicht verfügbar, warte und versuche erneut
-                            console.log('⏳ Warte auf Generator...');
+                            // Generator noch nicht verfügbar, erweiterte Wartefunktion
+                            console.log('⏳ Generator nicht sofort verfügbar, verwende erweiterte Wartefunktion...');
+
                             let waitAttempts = 0;
-                            const maxWaitAttempts = 10;
+                            const maxWaitAttempts = 20; // Erhöht von 10 auf 20
 
                             const waitForGenerator = async () => {
                                 waitAttempts++;
+                                generator = findGenerator();
 
-                                if (window.wochennachweisGenerator) {
+                                if (generator) {
                                     console.log('✅ Generator verfügbar nach', waitAttempts, 'Versuchen');
                                     try {
-                                        await window.wochennachweisGenerator.generateDocuments();
+                                        await generator.generateDocuments();
                                     } catch (error) {
                                         console.error('❌ Client-seitige Generierung fehlgeschlagen:', error);
                                         showAlert('Fehler bei der Client-seitigen Generierung: ' + error.message, 'danger');
                                     }
                                 } else if (waitAttempts < maxWaitAttempts) {
-                                    setTimeout(waitForGenerator, 200);
+                                    setTimeout(waitForGenerator, 150); // Reduziert von 200ms auf 150ms
                                 } else {
                                     console.error('❌ Generator nach', maxWaitAttempts, 'Versuchen nicht verfügbar');
-                                    showAlert('Generator nicht verfügbar. Verwende Server-seitige Generierung.', 'warning');
-                                    generateForm.submit();
+                                    console.log('🔍 Debug-Info:');
+                                    console.log('- window.wochennachweisGenerator:', typeof window.wochennachweisGenerator);
+                                    console.log('- Alle window.generator*:', Object.keys(window).filter(k => k.includes('generator')));
+
+                                    // Biete alternative Optionen
+                                    if (confirm('Generator nicht verfügbar. Möchten Sie die Server-seitige Generierung verwenden? (Verwendet Standard-Template)')) {
+                                        generateForm.submit();
+                                    } else {
+                                        showAlert('Generierung abgebrochen. Versuchen Sie es erneut oder laden Sie die Seite neu.', 'warning');
+                                    }
                                 }
                             };
 
@@ -877,13 +897,16 @@
             }
         }
 
-        // 🔧 TIMING-FIX: Generator-Override mit Retry-Logik
+                // 🔧 TIMING-FIX: Generator-Override mit verbesserter Erkennung
         function setupGeneratorOverride() {
-            if (window.wochennachweisGenerator) {
+            // Prüfe alle möglichen Generator-Referenzen
+            const generator = window.wochennachweisGenerator || window.ClientWochennachweisGenerator;
+
+            if (generator) {
 
                 // 1. Überschreibe loadTemplate Methode
-                const originalLoadTemplate = window.wochennachweisGenerator.loadTemplate;
-                window.wochennachweisGenerator.loadTemplate = async function() {
+                const originalLoadTemplate = generator.loadTemplate;
+                generator.loadTemplate = async function() {
                     // Prüfe auf eigenes Template
                     if (window.customTemplateData) {
                         console.log('📄 Verwende eigenes Template (global)');
@@ -909,8 +932,8 @@
                 };
 
                 // 2. Überschreibe createDocument für Template-Kontrolle
-                const originalCreateDocument = window.wochennachweisGenerator.createDocument;
-                window.wochennachweisGenerator.createDocument = async function(wochenData) {
+                const originalCreateDocument = generator.createDocument;
+                generator.createDocument = async function(wochenData) {
                     // Template-Check vor jeder Erstellung
                     if (window.customTemplateData && this.template !== window.customTemplateData) {
                         console.log('🔄 Korrigiere Template auf eigenes Template');
@@ -924,17 +947,27 @@
                     return await originalCreateDocument.call(this, wochenData);
                 };
 
-                console.log('✅ Template-Override erfolgreich installiert');
+                console.log('✅ Template-Override erfolgreich installiert für:', generator.constructor.name || 'Generator');
                 return true;
             } else {
-                console.log('⚠️ wochennachweisGenerator noch nicht verfügbar, versuche erneut...');
+                // Debugging: Zeige verfügbare Window-Properties
+                const generatorProps = Object.keys(window).filter(key =>
+                    key.toLowerCase().includes('generator') ||
+                    key.toLowerCase().includes('wochennachweis')
+                );
+
+                if (generatorProps.length > 0) {
+                    console.log('🔍 Gefundene Generator-Properties:', generatorProps);
+                }
+
+                console.log('⚠️ Generator noch nicht verfügbar, versuche erneut...');
                 return false;
             }
         }
 
-        // Versuche Generator-Override mit mehreren Versuchen
+        // Versuche Generator-Override mit erweiterten Versuchen
         let overrideAttempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 15; // Erhöht von 10 auf 15
 
         function attemptGeneratorOverride() {
             overrideAttempts++;
@@ -945,14 +978,46 @@
             }
 
             if (overrideAttempts < maxAttempts) {
-                setTimeout(attemptGeneratorOverride, 500);
+                setTimeout(attemptGeneratorOverride, 300); // Reduziert von 500ms auf 300ms
             } else {
                 console.warn('❌ Generator-Override fehlgeschlagen nach', maxAttempts, 'Versuchen');
+                console.log('🔍 Verfügbare Window-Properties für Debug:');
+                console.log('- window.wochennachweisGenerator:', !!window.wochennachweisGenerator);
+                console.log('- typeof window.wochennachweisGenerator:', typeof window.wochennachweisGenerator);
+
+                // Letzer Versuch mit direkter Referenz-Erstellung
+                setTimeout(() => {
+                    if (window.wochennachweisGenerator) {
+                        console.log('🔄 Letzter Versuch: Generator nach Timeout gefunden');
+                        setupGeneratorOverride();
+                    }
+                }, 2000);
             }
         }
 
-        // Starte Override-Versuche
-        setTimeout(attemptGeneratorOverride, 100);
+        // 🔧 NEUER ANSATZ: Warte auf DOMContentLoaded UND Generator
+        document.addEventListener('DOMContentLoaded', function() {
+            // Starte Override-Versuche erst nach DOM-Load
+            setTimeout(() => {
+                console.log('🔧 Starte Generator-Override-Versuche...');
+                attemptGeneratorOverride();
+            }, 200);
+        });
+
+        // 🔧 ZUSÄTZLICHER HOOK: Observer für Generator-Erstellung
+        const generatorObserver = setInterval(() => {
+            if (window.wochennachweisGenerator && overrideAttempts >= maxAttempts) {
+                console.log('🎯 Generator durch Observer gefunden!');
+                clearInterval(generatorObserver);
+                setupGeneratorOverride();
+            }
+        }, 1000);
+
+        // Stoppe Observer nach 30 Sekunden
+        setTimeout(() => {
+            clearInterval(generatorObserver);
+            console.log('🛑 Generator-Observer gestoppt');
+        }, 30000);
 
         // DEBUG-FUNKTIONEN (nur wenn Debug aktiv)
         @if (debugEnabled)
