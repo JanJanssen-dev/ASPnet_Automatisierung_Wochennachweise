@@ -63,7 +63,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
                     Kategorie = "Umschulung",
                     Start = Umschulungsbeginn,
                     Ende = UmschulungsEnde,
-                    Beschreibung = "Umschulung (automatisch generiert)"
+                    Beschreibung = ""
                 }
             };
         }

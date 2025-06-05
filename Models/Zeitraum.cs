@@ -16,7 +16,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         [DataType(DataType.Date)]
         public DateTime Ende { get; set; } = DateTime.Today.AddDays(7);
 
-        [Required(ErrorMessage = "Beschreibung ist erforderlich")]
+        //[Required(ErrorMessage = "Beschreibung ist erforderlich")]
         [StringLength(500, ErrorMessage = "Beschreibung darf maximal 500 Zeichen lang sein")]
         public string Beschreibung { get; set; } = string.Empty;
 
