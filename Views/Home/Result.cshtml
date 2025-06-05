@@ -273,475 +273,434 @@
 
 @section Scripts {
     <script>
-        // 🔥 ERWEITERTE RESULT-PAGE MIT ZIP-UNTERORDNERN
+                // 🔥 REPARIERTE RESULT-PAGE MIT FUNKTIONIERENDEM DOWNLOAD
 
-        class ExtendedResultPageGenerator {
-            constructor() {
-                this.configData = null;
-                this.wochennachweisData = null;
-                this.template = null;
-            }
-
-            async initialize() {
-                console.log('🚀 Erweiterte ResultPageGenerator wird initialisiert...');
-                this.registerEventHandlers();
-                console.log('✅ Erweiterte ResultPageGenerator bereit');
-            }
-
-            registerEventHandlers() {
-                // Haupt-Download-Button
-                const downloadAllBtn = document.getElementById('download-all-button');
-                if (downloadAllBtn) {
-                    downloadAllBtn.addEventListener('click', () => this.downloadAllDocuments());
-                }
-
-                // Test-Button
-                const testBtn = document.getElementById('test-generation-button');
-                if (testBtn) {
-                    testBtn.addEventListener('click', () => this.testGeneration());
-                }
-
-                // Statistiken-Button
-                const statsBtn = document.getElementById('show-statistics-button');
-                if (statsBtn) {
-                    statsBtn.addEventListener('click', () => this.toggleStatistics());
-                }
-
-                // Einzel-Download-Buttons
-                const singleBtns = document.querySelectorAll('.download-single-btn');
-                singleBtns.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const wocheNummer = btn.getAttribute('data-woche-nummer');
-                        const kategorie = btn.getAttribute('data-kategorie');
-                        this.downloadSingleDocument(wocheNummer, kategorie);
-                    });
-                });
-            }
-
-            toggleStatistics() {
-                const panel = document.getElementById('statistics-panel');
-                if (panel) {
-                    panel.classList.toggle('d-none');
-                }
-            }
-
-            async downloadAllDocuments() {
-                try {
-                    this.showProgress('🔄 Bereite Download mit Unterordnern vor...');
-
-                    if (!this.checkDependencies()) {
-                        return;
+                class FixedResultPageGenerator {
+                    constructor() {
+                        this.configData = null;
+                        this.wochennachweisData = null;
+                        this.template = null;
                     }
 
-                    this.showProgress('📊 Lade Wochendaten aus Session...');
-                    await this.loadWochennachweisDataFromSession();
-
-                    this.showProgress('📄 Lade Word-Template...');
-                    await this.loadTemplate();
-
-                    this.showProgress('🔨 Erstelle Word-Dokumente...');
-                    const documents = await this.createAllDocuments();
-
-                    if (documents.length === 0) {
-                        throw new Error('Keine Dokumente konnten erstellt werden');
+                    async initialize() {
+                        console.log('🚀 Reparierte ResultPageGenerator wird initialisiert...');
+                        this.registerEventHandlers();
+                        console.log('✅ Reparierte ResultPageGenerator bereit');
                     }
 
-                    this.showProgress('📦 Erstelle ZIP-Archiv mit Unterordnern...');
-                    await this.createZipDownloadWithFolders(documents);
+                    registerEventHandlers() {
+                        // Haupt-Download-Button - REPARIERT
+                        const downloadAllBtn = document.getElementById('download-all-button');
+                        if (downloadAllBtn) {
+                            downloadAllBtn.addEventListener('click', () => this.downloadAllDocumentsFixed());
+                        }
 
-                    this.showSuccess(`✅ ${documents.length} Dokumente erfolgreich erstellt und als strukturiertes ZIP heruntergeladen!`);
+                        // Test-Button
+                        const testBtn = document.getElementById('test-generation-button');
+                        if (testBtn) {
+                            testBtn.addEventListener('click', () => this.testGeneration());
+                        }
 
-                } catch (error) {
-                    console.error('❌ Fehler beim Download:', error);
-                    this.showError(`Fehler: ${error.message}`);
-                }
-            }
+                        // Statistiken-Button
+                        const statsBtn = document.getElementById('show-statistics-button');
+                        if (statsBtn) {
+                            statsBtn.addEventListener('click', () => this.toggleStatistics());
+                        }
 
-            async downloadSingleDocument(wocheNummer, kategorie) {
-                try {
-                    this.showProgress(`📄 Erstelle Dokument für Woche ${wocheNummer}...`);
-
-                    if (!this.checkDependencies()) {
-                        return;
-                    }
-
-                    if (!this.wochennachweisData) {
-                        this.showProgress('📊 Lade Wochendaten...');
-                        await this.loadWochennachweisDataFromSession();
-                    }
-
-                    if (!this.template) {
-                        this.showProgress('📄 Lade Word-Template...');
-                        await this.loadTemplate();
-                    }
-
-                    // Erweiterte Wochensuche
-                    const wochenArray = this.getWochenArray();
-
-                    if (!wochenArray || wochenArray.length === 0) {
-                        throw new Error('Keine Wochendaten verfügbar');
-                    }
-
-                    // Finde die entsprechende Woche
-                    const woche = wochenArray.find(w => {
-                        const wocheNummerMatch = (w.nummer || w.Nummer || w.NUMMER) == wocheNummer;
-                        const kategorieMatch = (w.kategorie || w.Kategorie || w.KATEGORIE) === kategorie;
-                        return wocheNummerMatch && kategorieMatch;
-                    });
-
-                    if (!woche) {
-                        console.error('❌ Woche nicht gefunden. Verfügbare Wochen:', wochenArray);
-                        throw new Error(`Woche ${wocheNummer} (${kategorie}) nicht gefunden`);
-                    }
-
-                    this.showProgress(`🔨 Erstelle Dokument für Woche ${wocheNummer}...`);
-                    const document = await this.createDocument(woche);
-
-                    // Verbesserter Dateiname mit Monat
-                    const monat = this.extractMonthFromWoche(woche);
-                    const filename = `Wochennachweis_${String(woche.nummer || woche.Nummer).padStart(2, '0')}_${monat}_${woche.kategorie || woche.Kategorie}.docx`;
-
-                    this.downloadBlob(new Blob([document]), filename);
-
-                    this.showSuccess(`✅ Dokument für Woche ${wocheNummer} erstellt!`);
-
-                } catch (error) {
-                    console.error('❌ Fehler beim Einzel-Download:', error);
-                    this.showError(`Fehler: ${error.message}`);
-                }
-            }
-
-            extractMonthFromWoche(woche) {
-                try {
-                    const templateData = woche.templateData || woche.TemplateData || {};
-                    if (templateData.MONAT) return templateData.MONAT;
-
-                    // Fallback: Aus Datum extrahieren
-                    const datum = woche.montag || woche.Montag;
-                    if (datum) {
-                        const monatsnamen = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-                                           'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-                        const datumObj = new Date(datum);
-                        return monatsnamen[datumObj.getMonth() + 1] || 'Unbekannt';
-                    }
-
-                    return 'Unbekannt';
-                } catch (error) {
-                    return 'Unbekannt';
-                }
-            }
-
-            // Verwende die erweiterte createZipDownloadWithFolders Methode
-            async createZipDownloadWithFolders(documents) {
-                // Diese Methode ist bereits in wochennachweis-generator.js implementiert
-                // Delegiere an die globale Instanz
-                if (window.wochennachweisGenerator) {
-                    await window.wochennachweisGenerator.createZipDownloadWithFolders(documents, this.wochennachweisData);
-                } else {
-                    throw new Error('Wochennachweis-Generator nicht verfügbar');
-                }
-            }
-
-            // Hilfsmethoden (delegiert an die Haupt-Klasse wo möglich)
-            getWochenArray() {
-                if (!this.wochennachweisData) return null;
-                return this.wochennachweisData.wochen || this.wochennachweisData.Wochen || this.wochennachweisData.WOCHEN || [];
-            }
-
-            checkDependencies() {
-                return window.wochennachweisGenerator ? window.wochennachweisGenerator.checkDependencies() : false;
-            }
-
-            async loadWochennachweisDataFromSession() {
-                const response = await fetch('/api/wochennachweis/generate-from-session');
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Session-Daten konnten nicht geladen werden');
-                }
-                this.wochennachweisData = await response.json();
-                console.log('📊 Erweiterte Wochendaten aus Session geladen:', this.wochennachweisData);
-            }
-
-            async loadTemplate() {
-                if (this.template) return;
-                const response = await fetch('/api/wochennachweis/template');
-                if (!response.ok) {
-                    throw new Error(`Template konnte nicht geladen werden: ${response.status}`);
-                }
-                this.template = await response.arrayBuffer();
-                console.log('📄 Template geladen:', this.template.byteLength, 'Bytes');
-            }
-
-            async createAllDocuments() {
-                const documents = [];
-                const wochenArray = this.getWochenArray();
-
-                if (!wochenArray || wochenArray.length === 0) {
-                    throw new Error('Keine Wochendaten verfügbar');
-                }
-
-                for (let i = 0; i < wochenArray.length; i++) {
-                    const woche = wochenArray[i];
-                    const wocheNummer = woche.nummer || woche.Nummer || 'unbekannt';
-
-                    this.showProgress(`📝 Erstelle Dokument ${i + 1}/${wochenArray.length} (Woche ${wocheNummer})...`);
-
-                    try {
-                        const document = await this.createDocument(woche);
-                        const monat = this.extractMonthFromWoche(woche);
-                        const kategorie = woche.kategorie || woche.Kategorie;
-
-                        documents.push({
-                            name: `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`,
-                            content: document,
-                            woche: woche,
-                            kategorie: kategorie
+                        // Einzel-Download-Buttons - REPARIERT
+                        const singleBtns = document.querySelectorAll('.download-single-btn');
+                        singleBtns.forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const wocheNummer = btn.getAttribute('data-woche-nummer');
+                                const kategorie = btn.getAttribute('data-kategorie');
+                                this.downloadSingleDocumentFixed(wocheNummer, kategorie);
+                            });
                         });
-
-                        console.log(`✅ Dokument ${i + 1} erstellt: Woche ${wocheNummer}`);
-                    } catch (docError) {
-                        console.error(`❌ Fehler bei Dokument ${i + 1}:`, docError);
-                    }
-                }
-
-                return documents;
-            }
-
-            async createDocument(wochenData) {
-                // Delegiere an die Haupt-Generator-Klasse
-                if (window.wochennachweisGenerator) {
-                    return await window.wochennachweisGenerator.createDocument(wochenData);
-                } else {
-                    throw new Error('Hauptgenerator nicht verfügbar');
-                }
-            }
-
-            downloadBlob(blob, filename) {
-                if (window.wochennachweisGenerator) {
-                    window.wochennachweisGenerator.downloadBlob(blob, filename);
-                } else {
-                    // Fallback
-                    const link = document.createElement('a');
-                    const url = URL.createObjectURL(blob);
-                    link.href = url;
-                    link.download = filename;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                }
-            }
-
-            async testGeneration() {
-                try {
-                    this.showProgress('🔧 Teste erweiterte Funktionen...');
-
-                    console.log('🔧 === ERWEITERTE SYSTEM-DIAGNOSE ===');
-
-                    // 1. Basis-Test delegieren
-                    if (window.wochennachweisGenerator) {
-                        await window.wochennachweisGenerator.testDocxtemplater();
                     }
 
-                    // 2. Zusätzliche Tests für Result-Page
-                    console.log('📋 Result-Page spezifische Tests:');
-
-                    // Session-Daten Test
-                    try {
-                        const sessionResponse = await fetch('/api/wochennachweis/generate-from-session');
-                        if (sessionResponse.ok) {
-                            const sessionData = await sessionResponse.json();
-                            console.log('  Session-Daten: ✅', sessionData.Wochen?.length || 0, 'Wochen');
-                        } else {
-                            console.log('  Session-Daten: ❌', sessionResponse.status);
+                    toggleStatistics() {
+                        const panel = document.getElementById('statistics-panel');
+                        if (panel) {
+                            panel.classList.toggle('d-none');
                         }
-                    } catch (sessionError) {
-                        console.log('  Session-Daten: ❌', sessionError.message);
                     }
 
-                    // Feiertags-Test
-                    try {
-                        const currentYear = new Date().getFullYear();
-                        const feiertagResponse = await fetch(`/api/wochennachweis/feiertage/${currentYear}?bundesland=DE-NW`);
-                        if (feiertagResponse.ok) {
-                            const feiertagData = await feiertagResponse.json();
-                            console.log('  Feiertage: ✅', feiertagData.anzahl, 'Feiertage für', currentYear);
-                        } else {
-                            console.log('  Feiertage: ❌', feiertagResponse.status);
+                    // 🔧 REPARIERTE HAUPT-DOWNLOAD-METHODE
+                    async downloadAllDocumentsFixed() {
+                        try {
+                            this.showProgress('🔄 Bereite Download mit Unterordnern vor...');
+
+                            if (!this.checkDependencies()) {
+                                return;
+                            }
+
+                            // Session-Daten laden
+                            this.showProgress('📊 Lade Wochendaten aus Session...');
+                            const response = await fetch('/api/wochennachweis/generate-from-session');
+                            if (!response.ok) {
+                                throw new Error('Session-Daten nicht verfügbar');
+                            }
+
+                            const sessionData = await response.json();
+                            console.log('✅ Session-Daten geladen:', sessionData);
+
+                            // Template laden
+                            this.showProgress('📄 Lade Word-Template...');
+                            const templateResponse = await fetch('/api/wochennachweis/template');
+                            if (!templateResponse.ok) {
+                                throw new Error('Template konnte nicht geladen werden');
+                            }
+                            const templateArrayBuffer = await templateResponse.arrayBuffer();
+                            console.log('✅ Template geladen:', templateArrayBuffer.byteLength, 'Bytes');
+
+                            // Dokumente erstellen
+                            this.showProgress('🔨 Erstelle Word-Dokumente...');
+                            const wochen = sessionData.Wochen || sessionData.wochen || [];
+                            console.log('📋 Wochen gefunden:', wochen.length);
+
+                            if (wochen.length === 0) {
+                                throw new Error('Keine Wochendaten verfügbar');
+                            }
+
+                            const documents = [];
+
+                            for (let i = 0; i < wochen.length; i++) {
+                                const woche = wochen[i];
+                                const wocheNummer = woche.nummer || woche.Nummer || (i + 1);
+                                this.showProgress(`📝 Erstelle Dokument ${i + 1}/${wochen.length} (Woche ${wocheNummer})...`);
+
+                                try {
+                                    const document = await this.createDocumentFixed(woche, templateArrayBuffer);
+
+                                    // Dateiname erstellen
+                                    const kategorie = woche.kategorie || woche.Kategorie || 'Sonstige';
+                                    const templateData = woche.templateData || woche.TemplateData || {};
+                                    const monat = templateData.MONAT || 'Unbekannt';
+                                    const filename = `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`;
+
+                                    documents.push({
+                                        name: filename,
+                                        content: document,
+                                        woche: woche,
+                                        kategorie: kategorie
+                                    });
+
+                                    console.log(`✅ Dokument ${i + 1} erstellt: ${filename}`);
+                                } catch (docError) {
+                                    console.error(`❌ Fehler bei Dokument ${i + 1}:`, docError);
+                                }
+                            }
+
+                            if (documents.length === 0) {
+                                throw new Error('Keine Dokumente konnten erstellt werden');
+                            }
+
+                            // ZIP erstellen und downloaden
+                            this.showProgress('📦 Erstelle ZIP-Archiv mit Unterordnern...');
+                            await this.createZipDownloadWithFoldersFixed(documents, sessionData);
+
+                            this.showSuccess(`✅ ${documents.length} Dokumente erfolgreich erstellt und als ZIP heruntergeladen!`);
+
+                        } catch (error) {
+                            console.error('❌ Fehler beim Download:', error);
+                            this.showError(`Fehler: ${error.message}`);
                         }
-                    } catch (feiertagError) {
-                        console.log('  Feiertage: ❌', feiertagError.message);
                     }
 
-                    // ZIP-Ordnerstruktur Test
-                    console.log('📁 ZIP-Ordnerstruktur Test:');
-                    if (typeof JSZip !== 'undefined') {
-                        const testZip = new JSZip();
-                        testZip.folder('Praktikum');
-                        testZip.folder('Umschulung');
-                        testZip.file('README.txt', 'Test');
+                    // 🔧 REPARIERTE EINZEL-DOWNLOAD-METHODE
+                    async downloadSingleDocumentFixed(wocheNummer, kategorie) {
+                        try {
+                            this.showProgress(`📄 Erstelle Dokument für Woche ${wocheNummer}...`);
 
-                        const testBlob = await testZip.generateAsync({ type: 'blob' });
-                        console.log('  ZIP-Ordner: ✅ Struktur erfolgreich getestet (', testBlob.size, 'Bytes)');
-                    } else {
-                        console.log('  ZIP-Ordner: ❌ JSZip nicht verfügbar');
+                            if (!this.checkDependencies()) {
+                                return;
+                            }
+
+                            // Session-Daten laden
+                            const response = await fetch('/api/wochennachweis/generate-from-session');
+                            if (!response.ok) {
+                                throw new Error('Session-Daten nicht verfügbar');
+                            }
+                            const sessionData = await response.json();
+
+                            // Template laden
+                            const templateResponse = await fetch('/api/wochennachweis/template');
+                            const templateArrayBuffer = await templateResponse.arrayBuffer();
+
+                            // Woche finden
+                            const wochen = sessionData.Wochen || sessionData.wochen || [];
+                            const woche = wochen.find(w => {
+                                const wNummerMatch = (w.nummer || w.Nummer) == wocheNummer;
+                                const kategorieMatch = (w.kategorie || w.Kategorie) === kategorie;
+                                return wNummerMatch && kategorieMatch;
+                            });
+
+                            if (!woche) {
+                                throw new Error(`Woche ${wocheNummer} (${kategorie}) nicht gefunden`);
+                            }
+
+                            // Dokument erstellen
+                            const document = await this.createDocumentFixed(woche, templateArrayBuffer);
+
+                            // Download
+                            const templateData = woche.templateData || woche.TemplateData || {};
+                            const monat = templateData.MONAT || 'Unbekannt';
+                            const filename = `Wochennachweis_${String(wocheNummer).padStart(2, '0')}_${monat}_${kategorie}.docx`;
+
+                            this.downloadBlob(new Blob([document]), filename);
+
+                            this.showSuccess(`✅ Dokument für Woche ${wocheNummer} erstellt!`);
+
+                        } catch (error) {
+                            console.error('❌ Fehler beim Einzel-Download:', error);
+                            this.showError(`Fehler: ${error.message}`);
+                        }
                     }
 
-                    this.showSuccess(`
-                        ✅ <strong>Erweiterte Funktionen getestet!</strong><br>
-                        <small>ZIP-Unterordner, Session-Integration und Feiertage funktionieren.</small><br>
-                        <small>Siehe Browser-Konsole für Details.</small>
-                    `);
+                    // 🔧 REPARIERTE DOKUMENT-ERSTELLUNG
+                    async createDocumentFixed(wochenData, templateArrayBuffer) {
+                        try {
+                            // PizZip und Docxtemplater verwenden
+                            const zip = new PizZip(templateArrayBuffer);
+                            const doc = new docxtemplater();
+                            doc.loadZip(zip);
+                            doc.setOptions({
+                                paragraphLoop: true,
+                                linebreaks: true,
+                                delimiters: { start: '{{', end: '}}' }
+                            });
 
-                } catch (error) {
-                    console.error('❌ Erweiterter Test-Fehler:', error);
-                    this.showError(`Erweiterter Test fehlgeschlagen: ${error.message}`);
+                            // Template-Daten setzen
+                            const templateData = wochenData.templateData || wochenData.TemplateData || {};
+                            doc.setData(templateData);
+                            doc.render();
+
+                            // Output generieren
+                            const output = doc.getZip().generate({
+                                type: 'arraybuffer',
+                                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                compression: 'DEFLATE'
+                            });
+
+                            return output;
+                        } catch (error) {
+                            console.error('❌ Dokument-Erstellung Fehler:', error);
+                            throw new Error(`Dokumenterstellung fehlgeschlagen: ${error.message}`);
+                        }
+                    }
+
+                    // 🔧 REPARIERTE ZIP-ERSTELLUNG
+                    async createZipDownloadWithFoldersFixed(documents, metaData) {
+                        try {
+                            const zip = new JSZip();
+
+                            // Dokumente nach Kategorien sortieren
+                            const kategorien = { 'Praktikum': [], 'Umschulung': [], 'Sonstige': [] };
+                            documents.forEach(doc => {
+                                const kategorie = doc.kategorie || 'Sonstige';
+                                if (kategorien[kategorie]) {
+                                    kategorien[kategorie].push(doc);
+                                } else {
+                                    kategorien['Sonstige'].push(doc);
+                                }
+                            });
+
+                            // Ordner erstellen und Dateien hinzufügen
+                            Object.keys(kategorien).forEach(kategorie => {
+                                const docs = kategorien[kategorie];
+                                if (docs.length > 0) {
+                                    console.log(`📁 Erstelle Ordner '${kategorie}' mit ${docs.length} Dokumenten`);
+                                    zip.folder(kategorie);
+                                    docs.forEach(doc => {
+                                        zip.file(`${kategorie}/${doc.name}`, doc.content);
+                                    });
+                                }
+                            });
+
+                            // README hinzufügen
+                            const nachname = metaData.nachname || metaData.Nachname || 'Unbekannt';
+                            const vorname = metaData.vorname || metaData.Vorname || 'Unbekannt';
+                            const klasse = metaData.klasse || metaData.Klasse || 'Unbekannt';
+
+                            const readme = `Wochennachweise - ${nachname}, ${vorname}
+        ${'='.repeat(50)}
+
+        Erstellt am: ${new Date().toLocaleString('de-DE')}
+        Anzahl Dokumente: ${documents.length}
+        Name: ${nachname}, ${vorname}
+        Klasse: ${klasse}
+
+        Ordnerstruktur:
+        ${Object.keys(kategorien).map(kat => {
+                                const count = kategorien[kat].length;
+                                return count > 0 ? `📁 ${kat}/ (${count} Dokumente)` : null;
+                            }).filter(Boolean).join('\n')}
+
+        Generiert mit: ASP.NET Core Wochennachweis-Generator`;
+
+                            zip.file('README.txt', readme);
+
+                            // ZIP generieren
+                            console.log('📦 Generiere ZIP-Archiv mit Ordnerstruktur...');
+                            const zipContent = await zip.generateAsync({
+                                type: 'blob',
+                                compression: 'DEFLATE',
+                                compressionOptions: { level: 6 }
+                            });
+
+                            // Download starten
+                            const filename = `Wochennachweise_${nachname}_${new Date().toISOString().split('T')[0]}.zip`;
+                            this.downloadBlob(zipContent, filename);
+
+                            console.log('✅ ZIP-Download gestartet:', filename);
+
+                        } catch (error) {
+                            console.error('❌ ZIP-Fehler:', error);
+                            throw new Error(`ZIP-Erstellung fehlgeschlagen: ${error.message}`);
+                        }
+                    }
+
+                    // Hilfsmethoden
+                    checkDependencies() {
+                        const hasPizZip = typeof PizZip !== 'undefined';
+                        const hasDocxtemplater = typeof docxtemplater !== 'undefined';
+                        const hasJSZip = typeof JSZip !== 'undefined';
+
+                        if (!hasPizZip || !hasDocxtemplater || !hasJSZip) {
+                            this.showError('Benötigte Libraries fehlen. Seite neu laden oder npm run copy-libs ausführen.');
+                            return false;
+                        }
+                        return true;
+                    }
+
+                    downloadBlob(blob, filename) {
+                        try {
+                            const link = document.createElement('a');
+                            const url = URL.createObjectURL(blob);
+                            link.href = url;
+                            link.download = filename;
+                            link.style.display = 'none';
+
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            console.log('💾 Download gestartet:', filename);
+                        } catch (error) {
+                            console.error('❌ Download-Fehler:', error);
+                            throw new Error(`Download fehlgeschlagen: ${error.message}`);
+                        }
+                    }
+
+                    async testGeneration() {
+                        try {
+                            this.showProgress('🔧 Teste erweiterte Funktionen...');
+                            console.log('🔧 === REPARIERTE SYSTEM-DIAGNOSE ===');
+
+                            // Basis-Tests
+                            const libTest = this.checkDependencies();
+                            console.log('📚 Bibliotheken:', libTest ? '✅ OK' : '❌ Fehler');
+
+                            // Session-Test
+                            try {
+                                const sessionResponse = await fetch('/api/wochennachweis/generate-from-session');
+                                if (sessionResponse.ok) {
+                                    const sessionData = await sessionResponse.json();
+                                    console.log('📊 Session-Daten: ✅', sessionData.Wochen?.length || 0, 'Wochen');
+                                } else {
+                                    console.log('📊 Session-Daten: ❌', sessionResponse.status);
+                                }
+                            } catch (sessionError) {
+                                console.log('📊 Session-Daten: ❌', sessionError.message);
+                            }
+
+                            // Template-Test
+                            try {
+                                const templateResponse = await fetch('/api/wochennachweis/template');
+                                if (templateResponse.ok) {
+                                    const templateBlob = await templateResponse.blob();
+                                    console.log('📄 Template: ✅', templateBlob.size, 'Bytes');
+                                } else {
+                                    console.log('📄 Template: ❌', templateResponse.status);
+                                }
+                            } catch (templateError) {
+                                console.log('📄 Template: ❌', templateError.message);
+                            }
+
+                            this.showSuccess('✅ Reparierte Funktionen getestet! Siehe Browser-Konsole für Details.');
+
+                        } catch (error) {
+                            console.error('❌ Test-Fehler:', error);
+                            this.showError(`Test fehlgeschlagen: ${error.message}`);
+                        }
+                    }
+
+                    // UI-Hilfsmethoden
+                    showProgress(message) {
+                        const progressDiv = document.getElementById('generation-progress');
+                        const progressText = document.getElementById('progress-text');
+
+                        if (progressDiv && progressText) {
+                            progressText.textContent = message;
+                            progressDiv.style.display = 'block';
+                            progressDiv.className = 'alert alert-info';
+                        }
+                        console.log('🔄', message);
+                    }
+
+                    showSuccess(message) {
+                        const progressDiv = document.getElementById('generation-progress');
+                        if (progressDiv) {
+                            progressDiv.className = 'alert alert-success';
+                            progressDiv.innerHTML = `
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <div>${message}</div>
+                                </div>
+                            `;
+                            progressDiv.style.display = 'block';
+                            setTimeout(() => progressDiv.style.display = 'none', 15000);
+                        }
+                        console.log('✅', message);
+                    }
+
+                    showError(message) {
+                        const progressDiv = document.getElementById('generation-progress');
+                        if (progressDiv) {
+                            progressDiv.className = 'alert alert-danger';
+                            progressDiv.innerHTML = `
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <div>${message}</div>
+                                    </div>
+                                    <button type="button" class="btn-close" onclick="document.getElementById('generation-progress').style.display='none'"></button>
+                                </div>
+                            `;
+                            progressDiv.style.display = 'block';
+                        }
+                        console.error('❌', message);
+                    }
                 }
-            }
 
-            // UI-Hilfsmethoden
-            showProgress(message) {
-                const progressDiv = document.getElementById('generation-progress');
-                const progressText = document.getElementById('progress-text');
+                // === INITIALISIERUNG ===
+                const fixedResultGenerator = new FixedResultPageGenerator();
 
-                if (progressDiv && progressText) {
-                    progressText.textContent = message;
-                    progressDiv.style.display = 'block';
-                    progressDiv.className = 'alert alert-info';
-                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('📋 REPARIERTE Result-Seite geladen - initialisiere Generator...');
+                    fixedResultGenerator.initialize();
 
-                console.log('🔄', message);
-            }
-
-            showSuccess(message) {
-                const progressDiv = document.getElementById('generation-progress');
-                if (progressDiv) {
-                    progressDiv.className = 'alert alert-success';
-                    progressDiv.innerHTML = `
-                        <div class="d-flex align-items-center justify-content-center">
-                            <i class="bi bi-check-circle me-2"></i>
-                            <div>${message}</div>
-                        </div>
-                    `;
-                    progressDiv.style.display = 'block';
-
+                    // Automatische Statistiken nach 2 Sekunden anzeigen
                     setTimeout(() => {
-                        progressDiv.style.display = 'none';
-                    }, 15000);
-                }
+                        const statsPanel = document.getElementById('statistics-panel');
+                        if (statsPanel) {
+                            statsPanel.classList.remove('d-none');
+                        }
+                    }, 2000);
+                });
 
-                console.log('✅', message);
-            }
-
-            showError(message) {
-                const progressDiv = document.getElementById('generation-progress');
-                if (progressDiv) {
-                    progressDiv.className = 'alert alert-danger';
-                    progressDiv.innerHTML = `
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <div>${message}</div>
-                            </div>
-                            <button type="button" class="btn-close" onclick="document.getElementById('generation-progress').style.display='none'"></button>
-                        </div>
-                    `;
-                    progressDiv.style.display = 'block';
-                }
-
-                console.error('❌', message);
-            }
-        }
-
-        // === INITIALISIERUNG ===
-        const extendedResultGenerator = new ExtendedResultPageGenerator();
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📋 Erweiterte Result-Seite geladen - initialisiere Generator...');
-            extendedResultGenerator.initialize();
-
-            // Automatische Statistiken nach 2 Sekunden anzeigen
-            setTimeout(() => {
-                const statsPanel = document.getElementById('statistics-panel');
-                if (statsPanel) {
-                    statsPanel.classList.remove('d-none');
-                }
-            }, 2000);
-        });
-
-        // === GLOBALE DEBUG-FUNKTIONEN ===
-        window.debugExtendedResultPage = function() {
-            console.log('🔧 === ERWEITERTE RESULT-PAGE DEBUG ===');
-            console.log('Generator:', extendedResultGenerator);
-            console.log('Wochendaten geladen:', !!extendedResultGenerator.wochennachweisData);
-            console.log('Template geladen:', !!extendedResultGenerator.template);
-            console.log('Haupt-Generator verfügbar:', !!window.wochennachweisGenerator);
-
-            console.log('UI-Elemente:', {
-                downloadAllButton: !!document.getElementById('download-all-button'),
-                testButton: !!document.getElementById('test-generation-button'),
-                statisticsButton: !!document.getElementById('show-statistics-button'),
-                singleDownloads: document.querySelectorAll('.download-single-btn').length,
-                statisticsPanel: !!document.getElementById('statistics-panel')
-            });
-
-            // Session-API Test
-            fetch('/api/wochennachweis/current-config')
-                .then(response => response.json())
-                .then(data => console.log('Aktuelle Session-Config:', data))
-                .catch(error => console.log('Session-Config Fehler:', error));
-        };
-
-        window.forceExtendedDownload = function() {
-            console.log('🔧 Force Extended Download...');
-            extendedResultGenerator.downloadAllDocuments();
-        };
-
-        window.testZipStructure = async function() {
-            console.log('🔧 Test ZIP-Struktur...');
-
-            if (typeof JSZip === 'undefined') {
-                console.error('❌ JSZip nicht verfügbar');
-                return;
-            }
-
-            const testZip = new JSZip();
-
-            // Ordnerstruktur erstellen
-            const praktikumFolder = testZip.folder('Praktikum');
-            const umschulungFolder = testZip.folder('Umschulung');
-
-            // Test-Dateien hinzufügen
-            praktikumFolder.file('Test_Praktikum.txt', 'Dies ist ein Test für den Praktikum-Ordner');
-            umschulungFolder.file('Test_Umschulung.txt', 'Dies ist ein Test für den Umschulung-Ordner');
-            testZip.file('README.txt', 'Test ZIP mit Unterordner-Struktur\nErstellt: ' + new Date().toLocaleString());
-
-            try {
-                const zipBlob = await testZip.generateAsync({ type: 'blob' });
-
-                // Download des Test-ZIPs
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(zipBlob);
-                link.href = url;
-                link.download = 'Test_ZIP_Struktur.zip';
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-                console.log('✅ Test-ZIP mit Ordnerstruktur erfolgreich erstellt und heruntergeladen');
-
-                if (window.showNotification) {
-                    window.showNotification('Test-ZIP mit Ordnerstruktur heruntergeladen', 'success');
-                }
-            } catch (error) {
-                console.error('❌ Fehler beim Erstellen der Test-ZIP:', error);
-            }
-        };
-
-        console.log('📋 Erweiterte Result-Page JavaScript geladen');
-        console.log('🔧 Debug-Funktionen: debugExtendedResultPage(), forceExtendedDownload(), testZipStructure()');
+                console.log('📋 REPARIERTE Result-Page JavaScript geladen - Downloads sollten jetzt funktionieren!');
     </script>
+}
 }
