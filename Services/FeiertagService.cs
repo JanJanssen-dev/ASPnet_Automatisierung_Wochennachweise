@@ -63,9 +63,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
         {
             try
             {
-                // 🔧 REPARIERT: Vollständige URL konstruieren
-                var url = $"api/v3/PublicHolidays/{jahr}/{bundeslandCode}";
-                _logger.LogDebug("Lade Feiertage von: {Url} (BaseAddress: {BaseAddress})", url, _httpClient.BaseAddress);
+                // 🔧 FIX: API verwendet immer "DE", Bundesland wird in Response gefiltert
+                var url = $"api/v3/PublicHolidays/{jahr}/DE";
+                _logger.LogDebug("Lade Feiertage von: {Url} für Bundesland: {Bundesland}", url, bundeslandCode);
 
                 var response = await _httpClient.GetAsync(url);
 
@@ -82,7 +82,17 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
 
-                return holidays?.Select(h => h.Date).ToList() ?? new List<DateTime>();
+                // 🔧 NEU: Filtere nach Bundesland aus den counties
+                var filteredHolidays = holidays?.Where(h =>
+                    h.Global ||  // Bundesweite Feiertage
+                    (h.Counties != null && h.Counties.Contains(bundeslandCode)) || // Bundesland-spezifische
+                    h.Counties == null || !h.Counties.Any() // Feiertage ohne Counties-Info (meist bundesweit)
+                ).ToList() ?? new List<HolidayDto>();
+
+                _logger.LogInformation("Gefilterte Feiertage für {Bundesland}: {Count} von {Total}",
+                    bundeslandCode, filteredHolidays.Count, holidays?.Count ?? 0);
+
+                return filteredHolidays.Select(h => h.Date).ToList();
             }
             catch (Exception ex)
             {
@@ -159,6 +169,8 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             public DateTime Date { get; set; }
             public string LocalName { get; set; } = "";
             public string Name { get; set; } = "";
+            public bool Global { get; set; }
+            public List<string>? Counties { get; set; }
         }
     }
 }
