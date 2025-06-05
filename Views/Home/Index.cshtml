@@ -351,10 +351,13 @@
 
 @section Scripts {
     <script>
-        // GLOBALE VARIABLEN
+        // GLOBALE VARIABLEN - ERWEITERT
         var DEBUG_ENABLED = @(debugEnabled.ToString().ToLower());
         var ZEITRAEUME_COUNT = @Model.Zeitraeume.Count;
         var customTemplate = null; // Für hochgeladenes Template
+
+        // 🔧 NEU: Globale Template-Variable für bessere Kontrolle
+        window.customTemplateData = null;
 
         // DOM READY EVENT
         document.addEventListener('DOMContentLoaded', function () {
@@ -363,11 +366,11 @@
             initializeFormValidation();
             initializeSignaturUpload();
             initializeInlineZeitraumEingabe();
-            initializeTemplateUpload(); // NEU
+            initializeTemplateUploadFixed(); // 🔧 REPARIERTE FUNKTION
         });
 
-        // 🔧 NEUE TEMPLATE-UPLOAD-FUNKTION
-        function initializeTemplateUpload() {
+        // 🔧 REPARIERTE TEMPLATE-UPLOAD-FUNKTION
+        function initializeTemplateUploadFixed() {
             const templateUpload = document.getElementById('template-upload');
             const templateStatus = document.getElementById('template-status');
             const currentTemplateInfo = document.getElementById('current-template-info');
@@ -394,12 +397,15 @@
                     try {
                         // Template als ArrayBuffer lesen
                         const arrayBuffer = await file.arrayBuffer();
-                        customTemplate = arrayBuffer;
 
-                        // Generator-Template überschreiben
+                        // 🔧 KRITISCH: Alle Template-Referenzen setzen
+                        customTemplate = arrayBuffer;
+                        window.customTemplateData = arrayBuffer;
+
+                        // Generator-Template SOFORT überschreiben
                         if (window.wochennachweisGenerator) {
                             window.wochennachweisGenerator.template = arrayBuffer;
-                            console.log('✅ Template im Generator aktualisiert');
+                            console.log('✅ Template im Generator aktualisiert:', arrayBuffer.byteLength, 'Bytes');
                         }
 
                         // Status anzeigen
@@ -407,6 +413,10 @@
                             <div class="alert alert-success">
                                 <i class="bi bi-check-circle me-2"></i>
                                 Eigenes Template geladen: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)
+                                <br><small class="text-muted">Template wird bei der nächsten Generierung verwendet</small>
+                                <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="testUploadedTemplate()">
+                                    <i class="bi bi-wrench me-1"></i>Template testen
+                                </button>
                             </div>
                         `;
 
@@ -424,6 +434,10 @@
                         showAlert('Fehler beim Laden des Templates: ' + error.message, 'danger');
                         templateUpload.value = '';
                         customTemplate = null;
+                        window.customTemplateData = null;
+                        if (window.wochennachweisGenerator) {
+                            window.wochennachweisGenerator.template = null;
+                        }
                     }
                 });
             }
@@ -433,6 +447,7 @@
                 resetTemplateBtn.addEventListener('click', function() {
                     if (confirm('Standard-Template wiederherstellen?')) {
                         customTemplate = null;
+                        window.customTemplateData = null;
 
                         // Generator zurücksetzen
                         if (window.wochennachweisGenerator) {
@@ -452,6 +467,74 @@
                         showAlert('Standard-Template wiederhergestellt!', 'success');
                     }
                 });
+            }
+        }
+
+        // 🔧 NEU: Template-Test-Funktion
+        function testUploadedTemplate() {
+            if (!window.customTemplateData && !customTemplate) {
+                showAlert('Kein eigenes Template geladen!', 'warning');
+                return;
+            }
+
+            try {
+                console.log('🔧 Teste hochgeladenes Template...');
+
+                const templateToTest = window.customTemplateData || customTemplate;
+
+                // Test-Daten
+                const testData = {
+                    NACHNAME: 'TestUser',
+                    VORNAME: 'Template',
+                    WOCHE: '1',
+                    KATEGORIE: 'Test',
+                    DATUM: '01.01.2024',
+                    UDATUM: '06.01.2024',
+                    KLASSE: 'TEST-2024',
+                    MONAT: 'Januar',
+                    JAHR: '2024',
+                    EINTRAG1: 'Template-Test erfolgreich!',
+                    EINTRAG2: 'Eigenes Template funktioniert',
+                    EINTRAG3: 'Platzhalter werden korrekt ersetzt',
+                    EINTRAG4: 'Docxtemplater arbeitet ordnungsgemäß',
+                    EINTRAG5: 'Download wird gestartet',
+                    EINTRAG6: 'Test erfolgreich abgeschlossen'
+                };
+
+                // Dokument erstellen
+                const zip = new PizZip(templateToTest);
+                const doc = new docxtemplater();
+                doc.loadZip(zip);
+                doc.setOptions({
+                    paragraphLoop: true,
+                    linebreaks: true,
+                    delimiters: { start: '{{', end: '}}' }
+                });
+
+                doc.setData(testData);
+                doc.render();
+
+                const output = doc.getZip().generate({
+                    type: 'blob',
+                    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                });
+
+                // Download starten
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(output);
+                link.href = url;
+                link.download = `Template-Test-${new Date().getTime()}.docx`;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                showAlert('✅ Template-Test erfolgreich! Test-Dokument wird heruntergeladen.', 'success');
+
+            } catch (error) {
+                console.error('❌ Template-Test Fehler:', error);
+                showAlert('Template-Test fehlgeschlagen: ' + error.message, 'danger');
             }
         }
 
@@ -651,6 +734,7 @@
             if (confirm('Wirklich alle Daten zurücksetzen?')) {
                 // Template auch zurücksetzen
                 customTemplate = null;
+                window.customTemplateData = null;
                 if (window.wochennachweisGenerator) {
                     window.wochennachweisGenerator.template = null;
                 }
@@ -702,120 +786,134 @@
             }
         }
 
-        // 🔧 ERWEITERTE GENERATOR-INTEGRATION
-        // Template-Überschreibung im Wochennachweis-Generator
-        if (window.wochennachweisGenerator) {
-            // Überschreibe die loadTemplate Methode
-            const originalLoadTemplate = window.wochennachweisGenerator.loadTemplate.bind(window.wochennachweisGenerator);
+        // 🔧 ERWEITERTE GENERATOR-INTEGRATION - VOLLSTÄNDIG REPARIERT
+        setTimeout(function() {
+            if (window.wochennachweisGenerator) {
 
-            window.wochennachweisGenerator.loadTemplate = async function() {
-                // Verwende eigenes Template wenn vorhanden
-                if (customTemplate) {
-                    console.log('📄 Verwende eigenes Template');
-                    this.template = customTemplate;
-                    return;
-                }
+                // 1. Überschreibe loadTemplate Methode
+                const originalLoadTemplate = window.wochennachweisGenerator.loadTemplate;
+                window.wochennachweisGenerator.loadTemplate = async function() {
+                    // Prüfe auf eigenes Template
+                    if (window.customTemplateData) {
+                        console.log('📄 Verwende eigenes Template (global)');
+                        this.template = window.customTemplateData;
+                        return;
+                    }
 
-                // Sonst Standard-Template laden
-                await originalLoadTemplate();
-            };
+                    if (customTemplate) {
+                        console.log('📄 Verwende eigenes Template (lokal)');
+                        this.template = customTemplate;
+                        return;
+                    }
 
-            console.log('✅ Template-Override im Generator installiert');
-        }
+                    // Lade Standard-Template
+                    if (originalLoadTemplate) {
+                        await originalLoadTemplate.call(this);
+                    } else {
+                        const response = await fetch('/api/wochennachweis/template');
+                        if (response.ok) {
+                            this.template = await response.arrayBuffer();
+                        }
+                    }
+                };
+
+                // 2. Überschreibe createDocument für Template-Kontrolle
+                const originalCreateDocument = window.wochennachweisGenerator.createDocument;
+                window.wochennachweisGenerator.createDocument = async function(wochenData) {
+                    // Template-Check vor jeder Erstellung
+                    if (window.customTemplateData && this.template !== window.customTemplateData) {
+                        console.log('🔄 Korrigiere Template auf eigenes Template');
+                        this.template = window.customTemplateData;
+                    }
+
+                    if (!this.template) {
+                        await this.loadTemplate();
+                    }
+
+                    return await originalCreateDocument.call(this, wochenData);
+                };
+
+                console.log('✅ Template-Override erfolgreich installiert');
+            } else {
+                console.warn('⚠️ wochennachweisGenerator nicht gefunden - Template-Override wird übersprungen');
+            }
+        }, 1000);
 
         // DEBUG-FUNKTIONEN (nur wenn Debug aktiv)
         @if (debugEnabled)
         {
-                    <text>
-                    function debugDOMElements() {
-                        console.log('🔍 DOM DEBUG REPORT:');
-                        console.log('=====================================');
+                <text>
+                function debugDOMElements() {
+                    console.log('🔍 DOM DEBUG REPORT:');
+                    console.log('=====================================');
 
-                        console.log('📋 Alle Forms:');
-                        document.querySelectorAll('form').forEach(function(form, i) {
-                            console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
-                        });
+                    console.log('📋 Alle Forms:');
+                    document.querySelectorAll('form').forEach(function(form, i) {
+                        console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
+                    });
 
-                        console.log('📋 Delete-Forms:');
-                        var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
-                        console.log('  Delete-Forms gefunden: ' + deleteForms.length);
-                        deleteForms.forEach(function(form, i) {
-                            console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '"}');
-                        });
+                    console.log('📋 Delete-Forms:');
+                    var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
+                    console.log('  Delete-Forms gefunden: ' + deleteForms.length);
+                    deleteForms.forEach(function(form, i) {
+                        console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '"}');
+                    });
 
-                        console.log('📋 Zeiträume-Tabelle:');
-                        var table = document.getElementById('zeitraeume-table');
-                        console.log('  Tabelle vorhanden: ' + !!table);
-                        if (table) {
-                            var rows = table.querySelectorAll('tbody tr');
-                            console.log('  Zeilen in tbody: ' + rows.length);
-                        }
-
-                        console.log('📋 Eingabe-Felder:');
-                        ['neue-kategorie', 'neues-start', 'neues-ende', 'neue-beschreibung'].forEach(id => {
-                            var el = document.getElementById(id);
-                            console.log('  ' + id + ': ' + (el ? '✅ Gefunden' : '❌ Nicht gefunden'));
-                        });
-
-                        console.log('📋 Template-Upload:');
-                        console.log('  Upload-Element: ' + (document.getElementById('template-upload') ? '✅ Gefunden' : '❌ Nicht gefunden'));
-                        console.log('  Custom Template: ' + (customTemplate ? '✅ Geladen (' + customTemplate.byteLength + ' Bytes)' : '❌ Nicht geladen'));
-                        console.log('  Generator Template: ' + (window.wochennachweisGenerator && window.wochennachweisGenerator.template ? '✅ Im Generator' : '❌ Nicht im Generator'));
-
-                        console.log('=====================================');
+                    console.log('📋 Zeiträume-Tabelle:');
+                    var table = document.getElementById('zeitraeume-table');
+                    console.log('  Tabelle vorhanden: ' + !!table);
+                    if (table) {
+                        var rows = table.querySelectorAll('tbody tr');
+                        console.log('  Zeilen in tbody: ' + rows.length);
                     }
 
-                    // Template-Debug-Funktionen
-                    window.debugTemplate = function() {
-                        console.log('🔧 === TEMPLATE DEBUG ===');
-                        console.log('Custom Template geladen:', !!customTemplate);
-                        if (customTemplate) {
-                            console.log('  Größe:', customTemplate.byteLength, 'Bytes');
-                            console.log('  Typ:', customTemplate.constructor.name);
+                    console.log('📋 Eingabe-Felder:');
+                    ['neue-kategorie', 'neues-start', 'neues-ende', 'neue-beschreibung'].forEach(id => {
+                        var el = document.getElementById(id);
+                        console.log('  ' + id + ': ' + (el ? '✅ Gefunden' : '❌ Nicht gefunden'));
+                    });
+
+                    console.log('📋 Template-Upload:');
+                    console.log('  Upload-Element: ' + (document.getElementById('template-upload') ? '✅ Gefunden' : '❌ Nicht gefunden'));
+                    console.log('  Custom Template: ' + (window.customTemplateData ? '✅ Geladen (' + window.customTemplateData.byteLength + ' Bytes)' : '❌ Nicht geladen'));
+                    console.log('  Generator Template: ' + (window.wochennachweisGenerator && window.wochennachweisGenerator.template ? '✅ Im Generator' : '❌ Nicht im Generator'));
+
+                    console.log('=====================================');
+                }
+
+                // Template-Debug-Funktionen
+                window.debugTemplate = function() {
+                    console.log('🔧 === TEMPLATE DEBUG ===');
+                    console.log('Custom Template geladen (global):', !!window.customTemplateData);
+                    console.log('Custom Template geladen (lokal):', !!customTemplate);
+                    if (window.customTemplateData) {
+                        console.log('  Größe (global):', window.customTemplateData.byteLength, 'Bytes');
+                    }
+                    if (customTemplate) {
+                        console.log('  Größe (lokal):', customTemplate.byteLength, 'Bytes');
+                    }
+
+                    console.log('Generator verfügbar:', !!window.wochennachweisGenerator);
+                    if (window.wochennachweisGenerator) {
+                        console.log('  Generator Template:', !!window.wochennachweisGenerator.template);
+                        if (window.wochennachweisGenerator.template) {
+                            console.log('  Generator Template Größe:', window.wochennachweisGenerator.template.byteLength, 'Bytes');
                         }
+                    }
+                };
 
-                        console.log('Generator verfügbar:', !!window.wochennachweisGenerator);
-                        if (window.wochennachweisGenerator) {
-                            console.log('  Generator Template:', !!window.wochennachweisGenerator.template);
-                            if (window.wochennachweisGenerator.template) {
-                                console.log('  Generator Template Größe:', window.wochennachweisGenerator.template.byteLength, 'Bytes');
-                            }
-                        }
-                    };
-
-                    window.testCustomTemplate = async function() {
-                        if (!customTemplate) {
-                            console.log('❌ Kein eigenes Template geladen');
-                            return;
-                        }
-
-                        console.log('🔧 Teste eigenes Template...');
-
-                        if (window.wochennachweisGenerator) {
-                            // Template temporär setzen
-                            const originalTemplate = window.wochennachweisGenerator.template;
-                            window.wochennachweisGenerator.template = customTemplate;
-
-                            try {
-                                await window.wochennachweisGenerator.testDocxtemplater();
-                                console.log('✅ Eigenes Template funktioniert!');
-                            } catch (error) {
-                                console.error('❌ Template-Test fehlgeschlagen:', error);
-                            } finally {
-                                // Original wiederherstellen
-                                window.wochennachweisGenerator.template = originalTemplate;
-                            }
-                        }
-                    };
-
-                    console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
-                    console.log('🔧 Debug-Funktionen verfügbar: debugDOMElements(), debugTemplate(), testCustomTemplate()');
-                    </text>
+                console.log('🔧 INDEX.CSHTML DEBUG AKTIV');
+                console.log('🔧 Debug-Funktionen verfügbar: debugDOMElements(), debugTemplate(), testUploadedTemplate()');
+                </text>
         }
 
-        console.log('📋 Index-Page JavaScript mit Template-Upload geladen');
-        console.log('📄 Template-Upload: Bereit für .docx Dateien');
+        console.log('📋 Index-Page JavaScript mit repariertem Template-Upload geladen');
+        console.log('📄 Template-Upload: Bereit für .docx Dateien mit korrekter Generator-Integration');
     </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }

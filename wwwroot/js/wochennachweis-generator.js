@@ -1,4 +1,4 @@
-﻿// Client-seitige Wochennachweis-Generierung - SEITENSPEZIFISCHE VERSION
+﻿// Client-seitige Wochennachweis-Generierung - TEMPLATE-FIXED VERSION
 class ClientWochennachweisGenerator {
     constructor() {
         this.template = null;
@@ -17,13 +17,22 @@ class ClientWochennachweisGenerator {
         console.log('- Result-Seite:', this.isResultPage ? '✅' : '❌');
 
         try {
-            // Template beim Laden der Seite vorab herunterladen
-            const response = await fetch('/api/wochennachweis/template');
-            if (response.ok) {
-                this.template = await response.arrayBuffer();
-                console.log('✅ Template erfolgreich geladen');
+            // 🔧 REPARIERT: Prüfe zuerst auf eigenes Template
+            if (window.customTemplateData) {
+                console.log('📄 Eigenes Template gefunden (global):', window.customTemplateData.byteLength, 'Bytes');
+                this.template = window.customTemplateData;
+            } else if (window.customTemplate) {
+                console.log('📄 Eigenes Template gefunden (lokal):', window.customTemplate.byteLength, 'Bytes');
+                this.template = window.customTemplate;
             } else {
-                console.warn('⚠️ Template konnte nicht geladen werden:', await response.text());
+                // Template beim Laden der Seite vorab herunterladen
+                const response = await fetch('/api/wochennachweis/template');
+                if (response.ok) {
+                    this.template = await response.arrayBuffer();
+                    console.log('✅ Standard-Template erfolgreich geladen');
+                } else {
+                    console.warn('⚠️ Template konnte nicht geladen werden:', await response.text());
+                }
             }
         } catch (error) {
             console.error('❌ Fehler beim Vorab-Laden des Templates:', error);
@@ -68,6 +77,37 @@ class ClientWochennachweisGenerator {
         return true;
     }
 
+    // 🔧 REPARIERTE loadTemplate Methode
+    async loadTemplate() {
+        // 1. Prüfe auf eigenes Template ZUERST
+        if (window.customTemplateData) {
+            console.log('📄 Verwende eigenes Template (global)');
+            this.template = window.customTemplateData;
+            return;
+        }
+
+        if (window.customTemplate) {
+            console.log('📄 Verwende eigenes Template (lokal)');
+            this.template = window.customTemplate;
+            return;
+        }
+
+        // 2. Lade Standard-Template vom Server
+        try {
+            console.log('📄 Lade Standard-Template vom Server');
+            const response = await fetch('/api/wochennachweis/template');
+            if (response.ok) {
+                this.template = await response.arrayBuffer();
+                console.log('✅ Standard-Template geladen');
+            } else {
+                throw new Error('Standard-Template konnte nicht geladen werden');
+            }
+        } catch (error) {
+            console.error('❌ Template-Laden fehlgeschlagen:', error);
+            throw error;
+        }
+    }
+
     // 🔧 NEUE METHODE: Prüfe Dependencies
     checkDependencies() {
         const hasPizZip = typeof PizZip !== 'undefined';
@@ -87,14 +127,18 @@ class ClientWochennachweisGenerator {
 
             if (!this.checkDependencies()) return;
 
-            // Wenn das Template noch nicht geladen ist
+            // 🔧 REPARIERT: Template-Prüfung mit eigenem Template
             if (!this.template) {
-                this.showProgress('📄 Lade Word-Template...');
-                const templateResponse = await fetch('/api/wochennachweis/template');
-                if (!templateResponse.ok) {
-                    throw new Error('Template konnte nicht geladen werden');
-                }
-                this.template = await templateResponse.arrayBuffer();
+                await this.loadTemplate();
+            }
+
+            // 🔧 KRITISCH: Nochmalige Prüfung auf eigenes Template
+            if (window.customTemplateData && this.template !== window.customTemplateData) {
+                console.log('🔄 Korrigiere auf eigenes Template (global)');
+                this.template = window.customTemplateData;
+            } else if (window.customTemplate && this.template !== window.customTemplate) {
+                console.log('🔄 Korrigiere auf eigenes Template (lokal)');
+                this.template = window.customTemplate;
             }
 
             // Dokument erstellen
@@ -159,14 +203,18 @@ class ClientWochennachweisGenerator {
             const wochennachweisData = await dataResponse.json();
             console.log('📊 Wochendaten erhalten:', wochennachweisData);
 
-            // 3. Template laden falls noch nicht vorhanden
+            // 3. Template laden falls noch nicht vorhanden - MIT FIX
             if (!this.template) {
-                this.showProgress('📄 Lade Word-Template...');
-                const templateResponse = await fetch('/api/wochennachweis/template');
-                if (!templateResponse.ok) {
-                    throw new Error('Template konnte nicht geladen werden');
-                }
-                this.template = await templateResponse.arrayBuffer();
+                await this.loadTemplate();
+            }
+
+            // 🔧 KRITISCH: Template-Check vor Generierung
+            if (window.customTemplateData && this.template !== window.customTemplateData) {
+                console.log('🔄 Korrigiere Template auf eigenes Template vor Generierung');
+                this.template = window.customTemplateData;
+            } else if (window.customTemplate && this.template !== window.customTemplate) {
+                console.log('🔄 Korrigiere Template auf lokales Template vor Generierung');
+                this.template = window.customTemplate;
             }
 
             // 4. Dokumente erstellen
@@ -414,6 +462,19 @@ class ClientWochennachweisGenerator {
 
     async createDocument(wochenData) {
         try {
+            // 🔧 KRITISCH: Template-Check vor jeder Dokumenterstellung
+            if (window.customTemplateData && this.template !== window.customTemplateData) {
+                console.log('🔄 Korrigiere Template auf eigenes Template (createDocument)');
+                this.template = window.customTemplateData;
+            } else if (window.customTemplate && this.template !== window.customTemplate) {
+                console.log('🔄 Korrigiere Template auf lokales Template (createDocument)');
+                this.template = window.customTemplate;
+            }
+
+            if (!this.template) {
+                await this.loadTemplate();
+            }
+
             // 1. PizZip-Instanz mit dem Template erstellen - UNVERÄNDERT
             const zip = new PizZip(this.template);
 
@@ -534,6 +595,8 @@ Hinweise:
 - Keine personenbezogenen Daten wurden an externe Server übertragen
 - Bei Fragen zur Verwendung siehe Template-Hilfe im Generator
 
+${window.customTemplateData || window.customTemplate ? 'Template: Eigenes Template verwendet' : 'Template: Standard-Template verwendet'}
+
 Generator-Version: ${new Date().getFullYear()}.${new Date().getMonth() + 1}
 Erstellt mit: ASP.NET Core Wochennachweis-Generator
 `;
@@ -561,7 +624,11 @@ Erstellt mit: ASP.NET Core Wochennachweis-Generator
                         }));
                     }
                     return acc;
-                }, {})
+                }, {}),
+                template: {
+                    typ: window.customTemplateData || window.customTemplate ? 'eigenes' : 'standard',
+                    groesse: this.template ? this.template.byteLength : 0
+                }
             };
             zip.file('metadata.json', JSON.stringify(metadataJson, null, 2));
 
@@ -738,7 +805,7 @@ const wochennachweisGenerator = new ClientWochennachweisGenerator();
 
 // Bei Seitenload initialisieren - VERBESSERT
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Initialisiere erweiterten Wochennachweis-Generator...');
+    console.log('🚀 Initialisiere erweiterten Wochennachweis-Generator mit Template-Fix...');
     wochennachweisGenerator.initialize();
 
     // Event-Handler für das Generieren-Formular (nur auf Index-Seite)
@@ -771,5 +838,5 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('📋 Result-Seite: Formular-Elemente nicht erwartet');
     }
 
-    console.log('✅ Erweiterte Generator-Initialisierung abgeschlossen');
+    console.log('✅ Erweiterte Generator-Initialisierung mit Template-Fix abgeschlossen');
 });
