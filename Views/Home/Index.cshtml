@@ -367,7 +367,95 @@
             initializeSignaturUpload();
             initializeInlineZeitraumEingabe();
             initializeTemplateUploadFixed(); // 🔧 REPARIERTE FUNKTION
+            initializeGenerateButtonFixed(); // 🔧 NEU: Reparierter Generate-Button
         });
+
+        // 🔧 REPARIERTE FUNKTION: Generate-Button mit Generator-Wartefunktion
+        function initializeGenerateButtonFixed() {
+            const generateForm = document.querySelector('form[action="/Home/Generate"]');
+            const generateButton = document.getElementById('generate-button');
+
+            if (generateForm && generateButton) {
+                // Entferne den ursprünglichen onclick-Handler
+                generateButton.removeAttribute('onclick');
+
+                // 🔧 KRITISCH: Neuer Event-Handler mit Template-Erkennung
+                generateButton.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    console.log('📝 Generate-Button geklickt...');
+
+                    // Prüfe ob eigenes Template vorhanden ist
+                    if (window.customTemplateData || customTemplate) {
+                        console.log('📄 Eigenes Template erkannt - verwende Client-seitige Generierung');
+
+                        // 🔧 WICHTIG: Warte auf Generator und führe dann aus
+                        if (window.wochennachweisGenerator) {
+                            try {
+                                await window.wochennachweisGenerator.generateDocuments();
+                            } catch (error) {
+                                console.error('❌ Client-seitige Generierung fehlgeschlagen:', error);
+                                showAlert('Fehler bei der Client-seitigen Generierung: ' + error.message, 'danger');
+                            }
+                        } else {
+                            // Generator noch nicht verfügbar, warte und versuche erneut
+                            console.log('⏳ Warte auf Generator...');
+                            let waitAttempts = 0;
+                            const maxWaitAttempts = 10;
+
+                            const waitForGenerator = async () => {
+                                waitAttempts++;
+
+                                if (window.wochennachweisGenerator) {
+                                    console.log('✅ Generator verfügbar nach', waitAttempts, 'Versuchen');
+                                    try {
+                                        await window.wochennachweisGenerator.generateDocuments();
+                                    } catch (error) {
+                                        console.error('❌ Client-seitige Generierung fehlgeschlagen:', error);
+                                        showAlert('Fehler bei der Client-seitigen Generierung: ' + error.message, 'danger');
+                                    }
+                                } else if (waitAttempts < maxWaitAttempts) {
+                                    setTimeout(waitForGenerator, 200);
+                                } else {
+                                    console.error('❌ Generator nach', maxWaitAttempts, 'Versuchen nicht verfügbar');
+                                    showAlert('Generator nicht verfügbar. Verwende Server-seitige Generierung.', 'warning');
+                                    generateForm.submit();
+                                }
+                            };
+
+                            waitForGenerator();
+                        }
+                    } else {
+                        console.log('📄 Kein eigenes Template - verwende Server-seitige Generierung');
+
+                        // Standard-Formular-Submit für Server-seitige Generierung
+                        generateForm.submit();
+                    }
+                });
+
+                // 🔧 ZUSÄTZLICH: Überschreibe auch das Formular-Submit-Event
+                generateForm.addEventListener('submit', function(e) {
+                    // Wenn eigenes Template vorhanden, verhindere Standard-Submit
+                    if (window.customTemplateData || customTemplate) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        console.log('🔄 Form-Submit abgefangen - verwende Client-seitige Generierung');
+
+                        // Trigger den Button-Click-Handler
+                        generateButton.click();
+
+                        return false;
+                    }
+
+                    // Sonst normaler Submit
+                    console.log('📝 Standard Form-Submit für Server-seitige Generierung');
+                });
+
+                console.log('✅ Generate-Button repariert für Template-Support');
+            }
+        }
 
         // 🔧 REPARIERTE TEMPLATE-UPLOAD-FUNKTION
         function initializeTemplateUploadFixed() {
@@ -413,10 +501,13 @@
                             <div class="alert alert-success">
                                 <i class="bi bi-check-circle me-2"></i>
                                 Eigenes Template geladen: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)
-                                <br><small class="text-muted">Template wird bei der nächsten Generierung verwendet</small>
-                                <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="testUploadedTemplate()">
-                                    <i class="bi bi-wrench me-1"></i>Template testen
-                                </button>
+                                <br><small class="text-muted">Template wird bei der nächsten Generierung automatisch verwendet</small>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-info me-2" onclick="testUploadedTemplate()">
+                                        <i class="bi bi-wrench me-1"></i>Template testen
+                                    </button>
+                                    <span class="badge bg-info">Client-seitige Generierung aktiv</span>
+                                </div>
                             </div>
                         `;
 
@@ -427,7 +518,7 @@
                             </small>
                         `;
 
-                        showAlert('Template erfolgreich hochgeladen und aktiviert!', 'success');
+                        showAlert('Template erfolgreich hochgeladen! Die Generierung verwendet jetzt automatisch Ihr Template.', 'success');
 
                     } catch (error) {
                         console.error('❌ Template-Upload Fehler:', error);
@@ -464,7 +555,7 @@
                             </small>
                         `;
 
-                        showAlert('Standard-Template wiederhergestellt!', 'success');
+                        showAlert('Standard-Template wiederhergestellt! Die Generierung verwendet wieder das Standard-Template.', 'success');
                     }
                 });
             }
@@ -786,8 +877,8 @@
             }
         }
 
-        // 🔧 ERWEITERTE GENERATOR-INTEGRATION - VOLLSTÄNDIG REPARIERT
-        setTimeout(function() {
+        // 🔧 TIMING-FIX: Generator-Override mit Retry-Logik
+        function setupGeneratorOverride() {
             if (window.wochennachweisGenerator) {
 
                 // 1. Überschreibe loadTemplate Methode
@@ -834,10 +925,34 @@
                 };
 
                 console.log('✅ Template-Override erfolgreich installiert');
+                return true;
             } else {
-                console.warn('⚠️ wochennachweisGenerator nicht gefunden - Template-Override wird übersprungen');
+                console.log('⚠️ wochennachweisGenerator noch nicht verfügbar, versuche erneut...');
+                return false;
             }
-        }, 1000);
+        }
+
+        // Versuche Generator-Override mit mehreren Versuchen
+        let overrideAttempts = 0;
+        const maxAttempts = 10;
+
+        function attemptGeneratorOverride() {
+            overrideAttempts++;
+
+            if (setupGeneratorOverride()) {
+                console.log('✅ Generator-Override erfolgreich nach', overrideAttempts, 'Versuchen');
+                return;
+            }
+
+            if (overrideAttempts < maxAttempts) {
+                setTimeout(attemptGeneratorOverride, 500);
+            } else {
+                console.warn('❌ Generator-Override fehlgeschlagen nach', maxAttempts, 'Versuchen');
+            }
+        }
+
+        // Starte Override-Versuche
+        setTimeout(attemptGeneratorOverride, 100);
 
         // DEBUG-FUNKTIONEN (nur wenn Debug aktiv)
         @if (debugEnabled)
@@ -847,36 +962,23 @@
                     console.log('🔍 DOM DEBUG REPORT:');
                     console.log('=====================================');
 
+                    console.log('📋 Generate-Button:');
+                    const generateBtn = document.getElementById('generate-button');
+                    console.log('  Button gefunden:', !!generateBtn);
+                    if (generateBtn) {
+                        console.log('  onclick-Attribut:', generateBtn.getAttribute('onclick'));
+                        console.log('  Event-Listener:', generateBtn.onclick);
+                    }
+
+                    console.log('📋 Template-Status:');
+                    console.log('  customTemplate:', !!customTemplate);
+                    console.log('  window.customTemplateData:', !!window.customTemplateData);
+                    console.log('  Generator Template:', window.wochennachweisGenerator ? !!window.wochennachweisGenerator.template : 'Generator nicht verfügbar');
+
                     console.log('📋 Alle Forms:');
                     document.querySelectorAll('form').forEach(function(form, i) {
                         console.log('  ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '", method: "' + form.method + '"}');
                     });
-
-                    console.log('📋 Delete-Forms:');
-                    var deleteForms = document.querySelectorAll('.delete-zeitraum-form');
-                    console.log('  Delete-Forms gefunden: ' + deleteForms.length);
-                    deleteForms.forEach(function(form, i) {
-                        console.log('  Form ' + (i+1) + ': {id: "' + form.id + '", action: "' + form.action + '"}');
-                    });
-
-                    console.log('📋 Zeiträume-Tabelle:');
-                    var table = document.getElementById('zeitraeume-table');
-                    console.log('  Tabelle vorhanden: ' + !!table);
-                    if (table) {
-                        var rows = table.querySelectorAll('tbody tr');
-                        console.log('  Zeilen in tbody: ' + rows.length);
-                    }
-
-                    console.log('📋 Eingabe-Felder:');
-                    ['neue-kategorie', 'neues-start', 'neues-ende', 'neue-beschreibung'].forEach(id => {
-                        var el = document.getElementById(id);
-                        console.log('  ' + id + ': ' + (el ? '✅ Gefunden' : '❌ Nicht gefunden'));
-                    });
-
-                    console.log('📋 Template-Upload:');
-                    console.log('  Upload-Element: ' + (document.getElementById('template-upload') ? '✅ Gefunden' : '❌ Nicht gefunden'));
-                    console.log('  Custom Template: ' + (window.customTemplateData ? '✅ Geladen (' + window.customTemplateData.byteLength + ' Bytes)' : '❌ Nicht geladen'));
-                    console.log('  Generator Template: ' + (window.wochennachweisGenerator && window.wochennachweisGenerator.template ? '✅ Im Generator' : '❌ Nicht im Generator'));
 
                     console.log('=====================================');
                 }
@@ -907,13 +1009,9 @@
                 </text>
         }
 
-        console.log('📋 Index-Page JavaScript mit repariertem Template-Upload geladen');
-        console.log('📄 Template-Upload: Bereit für .docx Dateien mit korrekter Generator-Integration');
+        console.log('📋 Index-Page JavaScript mit repariertem Template-Upload und Generate-Button geladen');
+        console.log('📄 Template-Upload: Automatische Weiterleitung zur Client-seitigen Generierung bei eigenem Template');
     </script>
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-}
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
