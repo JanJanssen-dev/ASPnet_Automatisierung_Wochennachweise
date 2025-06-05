@@ -17,6 +17,7 @@ namespace ASPnet_Automatisierung_Wochennachweise.Models
         public List<DateTime> Wochentage { get; set; } = new();
         public string Dateiname { get; set; } = string.Empty;
         public string Zeitraum { get; set; } = string.Empty;
+        public List<string> TagesBeschreibungen { get; set; } = new();
 
         // Personendaten
         public string Nachname { get; set; } = string.Empty;

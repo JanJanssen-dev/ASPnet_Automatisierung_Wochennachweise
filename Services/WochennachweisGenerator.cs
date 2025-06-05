@@ -90,15 +90,24 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 wochentage.Add(montag.AddDays(i));
             }
 
-            // Beschreibungen für jeden Wochentag ermitteln
+            // 🔧 REPARIERT: Tagesspezifische Beschreibungen sammeln
             var tagesBeschreibungen = new List<string>();
+            var alleBeschreibungen = new List<string>();
             var dominanteKategorie = "Umschulung"; // Fallback
             var kategorienInWoche = new Dictionary<string, int>();
 
             foreach (var tag in wochentage)
             {
                 var tagesBeschreibung = GetBeschreibungFuerTag(tag, zeitraeume, alleFeiertage);
+
+                // 🔧 NEU: Für jeden Tag eine spezifische Beschreibung speichern
                 tagesBeschreibungen.Add(tagesBeschreibung.beschreibung);
+
+                // Nur nicht-leere Beschreibungen für die Gesamt-Liste sammeln
+                if (!string.IsNullOrEmpty(tagesBeschreibung.beschreibung))
+                {
+                    alleBeschreibungen.Add(tagesBeschreibung.beschreibung);
+                }
 
                 // Kategorie-Statistik für dominante Kategorie
                 if (!string.IsNullOrEmpty(tagesBeschreibung.kategorie))
@@ -122,7 +131,9 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
                 Kategorie = dominanteKategorie,
                 Montag = montag,
                 Samstag = samstag,
-                Beschreibungen = tagesBeschreibungen.Where(b => !string.IsNullOrEmpty(b)).Distinct().ToList(),
+                // 🔧 REPARIERT: Zwei separate Listen
+                Beschreibungen = alleBeschreibungen.Distinct().ToList(), // Unique Beschreibungen für Übersicht
+                TagesBeschreibungen = tagesBeschreibungen, // Tagesspezifische Beschreibungen (Index 0-5 für Mo-Sa)
                 Jahr = montag.Year,
                 Ausbildungsjahr = CalculateAusbildungsjahr(config.Umschulungsbeginn, montag)
             };
@@ -236,10 +247,10 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             var templateData = new Dictionary<string, object>
             {
                 // ================================
-                // 🔧 HAUPT-TEMPLATE-FELDER
+                // 🔧 HAUPT-TEMPLATE-FELDER - REPARIERT
                 // ================================
 
-                // Einträge für Montag bis Freitag (Samstag separat)
+                // Einträge für Montag bis Samstag (tagesspezifisch)
                 ["EINTRAG1"] = GetEintragFuerTag(woche, 0), // Montag
                 ["EINTRAG2"] = GetEintragFuerTag(woche, 1), // Dienstag  
                 ["EINTRAG3"] = GetEintragFuerTag(woche, 2), // Mittwoch
@@ -288,17 +299,24 @@ namespace ASPnet_Automatisierung_Wochennachweise.Services
             return templateData;
         }
 
+        // 🔧 REPARIERTE GetEintragFuerTag Methode
         private string GetEintragFuerTag(Wochennachweis woche, int tagIndex)
         {
             if (tagIndex < 0 || tagIndex >= 6) return "";
 
-            // Wenn wir spezifische Tagesbeschreibungen haben, verwende diese
+            // 🔧 REPARIERT: Verwende tagesspezifische Beschreibungen
+            if (woche.TagesBeschreibungen != null && tagIndex < woche.TagesBeschreibungen.Count)
+            {
+                return woche.TagesBeschreibungen[tagIndex] ?? "";
+            }
+
+            // Fallback: Verwende die alten Beschreibungen falls TagesBeschreibungen nicht verfügbar
             if (woche.Beschreibungen.Count > tagIndex)
             {
                 return woche.Beschreibungen[tagIndex];
             }
 
-            // Fallback: Erste verfügbare Beschreibung
+            // Letzter Fallback: Erste verfügbare Beschreibung
             return woche.Beschreibungen.FirstOrDefault() ?? "";
         }
 
